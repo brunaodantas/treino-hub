@@ -2,9 +2,12 @@ import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
 import { VitePWA } from 'vite-plugin-pwa'
 
+// Vercel serve na raiz; o GitHub Pages serve em /treino-hub/.
+// `BASE_PATH=/treino-hub/ npm run build` gera a versão do Pages.
+const base = process.env.BASE_PATH || '/'
+
 export default defineConfig({
-  // GitHub Pages serve em /treino-hub/, não na raiz
-  base: '/treino-hub/',
+  base,
   plugins: [
     react(),
     VitePWA({
@@ -28,7 +31,7 @@ export default defineConfig({
       },
       workbox: {
         globPatterns: ['**/*.{js,css,html,svg,png,woff2,json}'],
-        navigateFallback: '/treino-hub/index.html',
+        navigateFallback: `${base}index.html`,
       },
     }),
   ],

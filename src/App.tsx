@@ -6,6 +6,7 @@ import Corrida from './screens/Corrida'
 import Historico from './screens/Historico'
 import Recuperacao from './screens/Recuperacao'
 import Ajustes from './screens/Ajustes'
+import BotaoRecarregar from './components/BotaoRecarregar'
 import { db } from './db/schema'
 import { importarSeed } from './db/importar'
 import { tratarCallbackStrava } from './sync/strava'
@@ -63,6 +64,7 @@ export default function App() {
       {aba === 'historico' && <Historico />}
       {aba === 'recuperacao' && <Recuperacao />}
       {aba === 'ajustes' && <Ajustes />}
+      <BotaoRecarregar />
       <TabBar aba={aba} onChange={setAba} />
     </>
   )

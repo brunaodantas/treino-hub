@@ -48,6 +48,26 @@ os dados de saúde chegam via Intervals.icu). Sem aba de nutrição, por decisã
   `NaN`, que quebra o `JSON.parse` do navegador — usar `allow_nan=False`.**
 - Sessões importadas sem letra no nome ficam com `treino: null` e **não movem a fila deslizante**.
 
+## Fontes de dados (decisão de 15/08/2026)
+
+Só **Strava** e **Intervals.icu**. O relógio manda para o Apple Saúde, que repassa
+para os dois, então não existe integração direta com Apple Health, Huawei ou Google Fit:
+
+| Dado | Vem de |
+|---|---|
+| Atividades (musculação, corrida, caminhada, pedalada, elíptico) | Strava |
+| Passos, sono, peso, FC de repouso, CTL/ATL | Intervals.icu (campo `steps` existe e é populado) |
+
+- Huawei Health não tem API para pessoa física (exige contrato de parceria). Chega via Apple Saúde.
+- Google Fit: API descontinuada, desligamento no fim de 2026, e o dado é redundante. Não integrar.
+- `public/historico-seed.json` é gerado dos caches locais + API; **nunca gravar `NaN`**
+  (`json.dumps(..., allow_nan=False)`), senão o `JSON.parse` do navegador quebra silenciosamente
+  e o app fica sem histórico.
+- Atividades com menos de 5 min E menos de 500 m são descartadas: são o relógio abrindo sozinho,
+  não treino (era daí que vinham "Remo" e "Trilha" que o Bruno nunca fez).
+- O histórico importado do Strava vem quase todo sem letra de treino ("Força"), por isso a fila
+  deslizante só considera sessões COM letra; olhar a última de todas travaria a fila no A.
+
 ## Fases
 1. **Feita (14/08/2026):** app instalável, Hoje + Sessão, Corrida, Histórico com último treino em destaque, Recuperação
 2. **Feita (14/08/2026):** Ajustes com status de conexão, sync Strava (importar/exportar) e Intervals, seed do histórico

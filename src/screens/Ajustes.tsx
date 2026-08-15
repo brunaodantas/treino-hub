@@ -91,7 +91,13 @@ export default function Ajustes() {
             <button className="btn-main" style={{ ['--cor' as string]: 'var(--c-a)' }} disabled={ocupado}
               onClick={() => rodar(async () => {
                 const r = await importarStrava()
-                return `Importado: ${r.sessoes} musculação, ${r.corridas} corrida(s)`
+                const totM = await db.sessoes.count()
+                const totC = await db.corridas.count()
+                // "0 novas" é o caso normal quando o histórico já está em dia;
+                // mostrar o total evita a leitura de que nada foi importado
+                return r.sessoes + r.corridas === 0
+                  ? `Nada novo no Strava. Você já tem ${totM} musculações e ${totC} corridas aqui.`
+                  : `+${r.sessoes} musculação, +${r.corridas} corrida(s). Total: ${totM} e ${totC}.`
               })}>
               Importar atividades novas
             </button>
@@ -130,9 +136,11 @@ export default function Ajustes() {
       </div>
 
       <div className="card">
-        <div className="eyebrow">Google Fit</div>
+        <div className="eyebrow">Apple Saúde e Huawei</div>
         <p style={{ fontSize: '0.8rem', color: 'var(--muted)', marginTop: 8, lineHeight: 1.55 }}>
-          A API do Google Fit foi descontinuada pelo Google, era por isso que a conexão vivia caindo no app antigo. Passos e FC chegam pelo Intervals.icu.
+          Não precisam de conexão aqui. O relógio manda para o Apple Saúde, que repassa
+          para o Strava e o Intervals.icu, e é de lá que este app lê. Passos, sono, peso
+          e FC de repouso chegam por esse caminho.
         </p>
       </div>
     </div>

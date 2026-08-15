@@ -320,3 +320,29 @@ input { font: inherit; color: inherit; }
 .screen > *:nth-child(4) { animation-delay: 0.15s; }
 
 .vazio { text-align: center; color: var(--faint); padding: 48px 20px; font-size: 0.85rem; line-height: 1.6; }
+
+/* ── Botão de recarregar (canto superior direito de cada tela) ── */
+.btn-recarregar {
+  position: fixed;
+  top: calc(env(safe-area-inset-top) + 14px);
+  right: 14px;
+  z-index: 40;
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  border: 1px solid var(--line);
+  background: color-mix(in srgb, var(--panel) 85%, transparent);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  color: var(--muted);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.btn-recarregar:active { color: var(--text); transform: scale(0.94); }
+.btn-recarregar svg { width: 18px; height: 18px; }
+@keyframes girar { to { transform: rotate(360deg); } }
+.btn-recarregar svg.girando { animation: girar 0.7s linear infinite; }
+
+/* a tela tem título grande à esquerda; reserva espaço pro botão não cobrir */
+.screen > div:first-child { padding-right: 46px; }

@@ -46,6 +46,31 @@ export interface Wellness {
   // TSB nunca vem da API: calcular sempre CTL − ATL
 }
 
+// Caminhada, pedalada, elíptico: entram no histórico, não no plano de treino
+export interface Atividade {
+  id?: number
+  data: string // YYYY-MM-DD
+  tipo: string
+  nome: string
+  distanciaKm: number | null
+  duracaoMin: number | null
+  fcMedia: number | null
+  fonte: 'manual' | 'strava'
+}
+
+// Uma linha por dia, com o que cada fonte tiver. Apple Health (que já recebe
+// o Huawei) traz passos, calorias e FC; o Intervals traz sono, CTL/ATL e peso.
+export interface DiaSaude {
+  data: string // YYYY-MM-DD, chave
+  passos: number | null
+  calorias: number | null
+  fcRepouso: number | null
+  sonoHoras: number | null
+  ctl: number | null
+  atl: number | null
+  pesoKg: number | null
+}
+
 export interface PesoExercicio {
   exercicio: string // chave
   pesoKg: number
@@ -71,6 +96,8 @@ class TreinoDB extends Dexie {
   series!: Table<Serie, number>
   corridas!: Table<CorridaLog, number>
   wellness!: Table<Wellness, string>
+  atividades!: Table<Atividade, number>
+  diario!: Table<DiaSaude, string>
   pesos!: Table<PesoExercicio, string>
   syncQueue!: Table<SyncItem, number>
   config!: Table<Config, string>
@@ -88,6 +115,10 @@ class TreinoDB extends Dexie {
     })
     this.version(2).stores({
       sessoes: '++id, treino, iniciadaEm, finalizadaEm, stravaId',
+    })
+    this.version(3).stores({
+      atividades: '++id, data, tipo',
+      diario: 'data',
     })
   }
 }
