@@ -321,6 +321,35 @@ input { font: inherit; color: inherit; }
 
 .vazio { text-align: center; color: var(--faint); padding: 48px 20px; font-size: 0.85rem; line-height: 1.6; }
 
+/* ── Gráficos (SVG puro) ── */
+.grafico { position: relative; margin-top: 10px; }
+.grafico svg { display: block; width: 100%; overflow: visible; }
+.g-zero { stroke: var(--faint); stroke-width: 1; stroke-dasharray: 3 3; }
+.g-meta { stroke: var(--muted); stroke-width: 1.5; stroke-dasharray: 4 3; }
+.g-eixo {
+  display: flex; justify-content: space-between;
+  font-size: 0.6rem; color: var(--faint); font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  margin-top: 4px;
+}
+.g-eixo-x {
+  display: flex; justify-content: space-between;
+  font-size: 0.6rem; color: var(--faint); font-weight: 700; margin-top: 2px;
+}
+.g-nota { font-size: 0.78rem; color: var(--muted); line-height: 1.55; margin-top: 6px; }
+.g-nota b { color: var(--text); }
+.g-legenda { display: flex; gap: 14px; margin-top: 8px; flex-wrap: wrap; }
+.g-legenda span {
+  display: flex; align-items: center; gap: 5px;
+  font-size: 0.66rem; color: var(--muted); font-weight: 700;
+  letter-spacing: 0.04em;
+}
+.g-legenda i { width: 10px; height: 3px; border-radius: 2px; }
+.grafico-vazio {
+  height: 90px; display: flex; align-items: center; justify-content: center;
+  color: var(--faint); font-size: 0.75rem; letter-spacing: 0.1em; text-transform: uppercase;
+}
+
 /* ── Escolha de treino: os 4 sempre disponíveis ── */
 .treino-opcao {
   display: flex;
@@ -361,12 +390,16 @@ input { font: inherit; color: inherit; }
 .treino-opcao.sugerido .meta { color: var(--cor); font-weight: 700; }
 .treino-opcao .seta { color: var(--faint); font-size: 1.5rem; line-height: 1; }
 
-/* ── Botão de recarregar (canto superior direito de cada tela) ── */
-.btn-recarregar {
+/* ── Ações do topo: ajustes e recarregar ── */
+.acoes-topo {
   position: fixed;
   top: calc(env(safe-area-inset-top) + 14px);
   right: 14px;
   z-index: 40;
+  display: flex;
+  gap: 8px;
+}
+.btn-recarregar, .btn-topo {
   width: 40px;
   height: 40px;
   border-radius: 50%;
@@ -379,10 +412,11 @@ input { font: inherit; color: inherit; }
   align-items: center;
   justify-content: center;
 }
-.btn-recarregar:active { color: var(--text); transform: scale(0.94); }
-.btn-recarregar svg { width: 18px; height: 18px; }
+.btn-recarregar:active, .btn-topo:active { color: var(--text); transform: scale(0.94); }
+.btn-topo.ativo { color: var(--text); border-color: var(--muted); }
+.btn-recarregar svg, .btn-topo svg { width: 18px; height: 18px; }
 @keyframes girar { to { transform: rotate(360deg); } }
 .btn-recarregar svg.girando { animation: girar 0.7s linear infinite; }
 
-/* a tela tem título grande à esquerda; reserva espaço pro botão não cobrir */
-.screen > div:first-child { padding-right: 46px; }
+/* a tela tem título grande à esquerda; reserva espaço pros botões não cobrirem */
+.screen > div:first-child { padding-right: 96px; }

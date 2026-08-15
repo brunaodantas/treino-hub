@@ -6,6 +6,7 @@ import Corrida from './screens/Corrida'
 import Historico from './screens/Historico'
 import Recuperacao from './screens/Recuperacao'
 import Ajustes from './screens/Ajustes'
+import Evolucao from './screens/Evolucao'
 import BotaoRecarregar from './components/BotaoRecarregar'
 import { db } from './db/schema'
 import { importarSeed } from './db/importar'
@@ -63,8 +64,20 @@ export default function App() {
       {aba === 'corrida' && <Corrida />}
       {aba === 'historico' && <Historico />}
       {aba === 'recuperacao' && <Recuperacao />}
+      {aba === 'evolucao' && <Evolucao />}
       {aba === 'ajustes' && <Ajustes />}
-      <BotaoRecarregar />
+      <div className="acoes-topo">
+        <button
+          className={`btn-topo${aba === 'ajustes' ? ' ativo' : ''}`}
+          onClick={() => setAba(aba === 'ajustes' ? 'hoje' : 'ajustes')}
+          aria-label="Ajustes"
+        >
+          <svg viewBox="0 0 24 24" fill="currentColor">
+            <path d="M19.4 13a7.6 7.6 0 0 0 .1-1 7.6 7.6 0 0 0-.1-1l2.1-1.6a.5.5 0 0 0 .1-.7l-2-3.4a.5.5 0 0 0-.6-.2l-2.5 1a7.5 7.5 0 0 0-1.7-1l-.4-2.6a.5.5 0 0 0-.5-.5h-4a.5.5 0 0 0-.5.4l-.4 2.7a7.5 7.5 0 0 0-1.7 1l-2.5-1a.5.5 0 0 0-.6.2l-2 3.4a.5.5 0 0 0 .1.7L4.5 11a7.6 7.6 0 0 0 0 2l-2.1 1.6a.5.5 0 0 0-.1.7l2 3.4c.1.2.4.3.6.2l2.5-1c.5.4 1.1.7 1.7 1l.4 2.6c0 .3.2.5.5.5h4c.2 0 .5-.2.5-.4l.4-2.7a7.5 7.5 0 0 0 1.7-1l2.5 1c.2.1.5 0 .6-.2l2-3.4a.5.5 0 0 0-.1-.7L19.4 13zM12 15.5a3.5 3.5 0 1 1 0-7 3.5 3.5 0 0 1 0 7z" />
+          </svg>
+        </button>
+        <BotaoRecarregar />
+      </div>
       <TabBar aba={aba} onChange={setAba} />
     </>
   )

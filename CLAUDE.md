@@ -76,6 +76,24 @@ para os dois, então não existe integração direta com Apple Health, Huawei ou
 - O histórico importado do Strava vem quase todo sem letra de treino ("Força"), por isso a fila
   deslizante só considera sessões COM letra; olhar a última de todas travaria a fila no A.
 
+## Aba Evolução (15/08/2026)
+
+Gráficos em **SVG puro** (`src/components/Grafico.tsx`): sem Chart.js/Plotly, para
+não pesar o bundle nem depender de CDN — o app tem que abrir offline na academia.
+
+- `GraficoLinha` (séries múltiplas, `zeroRef` para TSB, `conectar` para peso/FCR)
+  e `GraficoBarras` (com `meta` tracejada). viewBox 0..100, `preserveAspectRatio="none"`,
+  traço com `vector-effect: non-scaling-stroke` para não distorcer.
+- `conectar` liga por cima dos dias sem medição: certo para peso (medido de vez em
+  quando), errado para métricas diárias, onde o buraco é informação.
+- **Semanas sempre em horário local.** `toISOString()` converte para UTC e, no fuso
+  do Brasil, joga a data para o dia anterior — isso desalinhava as chaves e a média
+  semanal dava 0. Usar o helper `dataLocal()`.
+- O esqueleto de semanas é pré-criado com zero: semana sem treino precisa aparecer
+  como barra vazia, é justamente o que interessa ver.
+- Ajustes saiu da TabBar e virou ícone no topo (junto do recarregar): 6 abas não
+  cabem em 375 px sem cortar rótulo.
+
 ## Fases
 1. **Feita (14/08/2026):** app instalável, Hoje + Sessão, Corrida, Histórico com último treino em destaque, Recuperação
 2. **Feita (14/08/2026):** Ajustes com status de conexão, sync Strava (importar/exportar) e Intervals, seed do histórico
