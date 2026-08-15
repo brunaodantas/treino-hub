@@ -321,6 +321,46 @@ input { font: inherit; color: inherit; }
 
 .vazio { text-align: center; color: var(--faint); padding: 48px 20px; font-size: 0.85rem; line-height: 1.6; }
 
+/* ── Escolha de treino: os 4 sempre disponíveis ── */
+.treino-opcao {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  width: 100%;
+  text-align: left;
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: var(--r2);
+  padding: 14px 16px;
+  margin-top: 10px;
+  transition: transform 0.08s ease, border-color 0.15s ease;
+}
+.treino-opcao:active { transform: scale(0.99); }
+.treino-opcao.sugerido { border-color: var(--cor); background: color-mix(in srgb, var(--cor) 10%, var(--panel)); }
+.treino-opcao.feito { opacity: 0.5; }
+.treino-opcao .letra {
+  flex: 0 0 auto;
+  width: 44px; height: 44px;
+  border-radius: 12px;
+  background: var(--cor);
+  color: #0c0b09;
+  font-weight: 900;
+  font-size: 1.15rem;
+  font-variation-settings: 'wdth' 110;
+  display: flex; align-items: center; justify-content: center;
+}
+.treino-opcao .txt { flex: 1; min-width: 0; }
+.treino-opcao .nome { display: block; font-weight: 800; font-size: 0.95rem; }
+.treino-opcao .meta {
+  display: block;
+  font-size: 0.72rem;
+  color: var(--muted);
+  margin-top: 2px;
+  letter-spacing: 0.03em;
+}
+.treino-opcao.sugerido .meta { color: var(--cor); font-weight: 700; }
+.treino-opcao .seta { color: var(--faint); font-size: 1.5rem; line-height: 1; }
+
 /* ── Botão de recarregar (canto superior direito de cada tela) ── */
 .btn-recarregar {
   position: fixed;

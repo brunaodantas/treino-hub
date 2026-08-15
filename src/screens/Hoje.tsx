@@ -1,138 +1,123 @@
 import { useEffect, useState } from 'react'
-import { planoDoDia, proximaLetra, ROTULOS, totalSeries, DIAS_LONGOS, type LetraTreino } from '../logic/programa'
+import {
+  planoDoDia, proximaLetra, ROTULOS, totalSeries, DIAS_LONGOS,
+  type LetraTreino,
+} from '../logic/programa'
 import { corDoPlano, COR_TREINO } from '../logic/cores'
 import WeekStrip from '../components/WeekStrip'
 import { db } from '../db/schema'
 
-const TITULO_TIPO: Record<string, (t: LetraTreino | null) => string> = {
-  treino: (t) => `TREINO ${t}`,
-  corrida: () => 'CORRIDA',
-  descanso: () => 'DESCANSO',
+const LETRAS: LetraTreino[] = ['A', 'B', 'C', 'D']
+
+// Frase do topo por tipo de dia. Varia com a data (determinístico, não sorteio:
+// abrir o app duas vezes no mesmo dia não troca a frase).
+const FRASES: Record<string, string[]> = {
+  treino: [
+    'Uma série de cada vez.',
+    'Constância vence intensidade.',
+    'Apareça. O resto é detalhe.',
+    'Hoje entra no acumulado.',
+    'A carga sobe devagar, e sobe.',
+    'Treino feito é treino que conta.',
+  ],
+  corrida: [
+    'Ritmo confortável já resolve.',
+    'Devagar também é treino.',
+    'O relógio registra, você só corre.',
+    'Fácil hoje, forte depois.',
+  ],
+  descanso: [
+    'Dormir é treino.',
+    'Descanso programado, não dia perdido.',
+    'O músculo cresce agora.',
+    'Recuperar faz parte do plano.',
+  ],
+}
+
+function fraseDoDia(tipo: string, d: Date): string {
+  const lista = FRASES[tipo] ?? FRASES.treino
+  const diaDoAno = Math.floor((d.getTime() - new Date(d.getFullYear(), 0, 0).getTime()) / 86400000)
+  return lista[diaDoAno % lista.length]
 }
 
 export default function Hoje({ onIniciar }: { onIniciar: (t: LetraTreino) => void }) {
   const agora = new Date()
-  const planoBase = planoDoDia(agora)
-  const [feitoHoje, setFeitoHoje] = useState<string | null>(null)
-  const [proximo, setProximo] = useState<LetraTreino>('A')
+  const plano = planoDoDia(agora)
+  const cor = corDoPlano(plano)
+  const [feitosHoje, setFeitosHoje] = useState<LetraTreino[]>([])
+  const [sugerido, setSugerido] = useState<LetraTreino>('A')
 
   useEffect(() => {
-    const inicio = new Date(agora); inicio.setHours(0, 0, 0, 0)
+    const inicio = new Date(); inicio.setHours(0, 0, 0, 0)
     db.sessoes
       .where('iniciadaEm').above(inicio.toISOString())
-      .and((s) => s.finalizadaEm !== null)
-      .first()
-      .then((s) => setFeitoHoje(s ? s.treino : null))
-    // fila deslizante: o treino de hoje é o posterior ao último concluído
-    // COM letra identificada (sessões importadas sem letra não movem a fila)
+      .and((s) => s.finalizadaEm !== null && s.treino !== null)
+      .toArray()
+      .then((ss) => setFeitosHoje(ss.map((s) => s.treino as LetraTreino)))
+    // fila deslizante: sugere o posterior ao último concluído COM letra
+    // (o histórico do Strava vem sem letra e não deve mover a fila)
     db.sessoes
       .orderBy('iniciadaEm').reverse()
       .filter((s) => s.finalizadaEm !== null && s.treino !== null)
       .first()
-      .then((s) => setProximo(proximaLetra((s?.treino as LetraTreino) ?? null)))
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+      .then((s) => setSugerido(proximaLetra((s?.treino as LetraTreino) ?? null)))
   }, [])
-
-  // dia de musculação usa a fila, não a letra fixa do calendário;
-  // se já treinou hoje, o hero mostra o que foi feito
-  const plano = planoBase.tipo === 'treino'
-    ? { ...planoBase, treino: (feitoHoje as LetraTreino) ?? proximo, eventual: false }
-    : planoBase
-  const cor = corDoPlano(plano)
 
   const dataFmt = agora.toLocaleDateString('pt-BR', { day: '2-digit', month: 'long' })
 
   return (
     <div className="wrap screen" style={{ ['--cor' as string]: cor }}>
       <div>
-        <div className="eyebrow">{DIAS_LONGOS[agora.getDay()]} · {dataFmt}</div>
+        <div className="eyebrow">{dataFmt}</div>
         <h1 className="hero-dia" style={{ marginTop: 8 }}>
-          <span className="apagado">HOJE</span>
-          <span className="tipo" style={{ color: cor }}>{TITULO_TIPO[plano.tipo](plano.treino)}</span>
+          <span className="tipo" style={{ color: cor }}>{DIAS_LONGOS[agora.getDay()]}</span>
         </h1>
-        <div className="hero-sub">
-          {plano.tipo === 'treino' && plano.treino && ROTULOS[plano.treino].toUpperCase()}
-          {plano.tipo === 'corrida' && plano.corrida && `${plano.corrida.tipo} · ${plano.corrida.duracao}`.toUpperCase()}
-          {plano.tipo === 'descanso' && 'RECUPERAR. COMER. DORMIR.'}
-        </div>
+        <div className="hero-sub">{fraseDoDia(plano.tipo, agora)}</div>
       </div>
 
       <WeekStrip />
 
-      {plano.tipo === 'treino' && plano.treino && (
-        <>
-          {feitoHoje === plano.treino ? (
-            <div className="card card-hint" style={{ ['--cor' as string]: cor }}>
-              <b>Treino {plano.treino} concluído hoje.</b>
-              <p>Registro salvo no histórico. Agora é comer e dormir.</p>
-            </div>
-          ) : (
-            <button className="btn-main" onClick={() => onIniciar(plano.treino!)}>
-              Iniciar Treino {plano.treino} · {totalSeries(plano.treino)} séries
-            </button>
-          )}
-          {plano.corrida && (
-            <div className="card card-hint" style={{ ['--cor' as string]: 'var(--c-run)' }}>
-              <b>Corrida do dia: {plano.corrida.tipo} · {plano.corrida.duracao}</b>
-              <p>{plano.corrida.descricao}</p>
-            </div>
-          )}
-          {plano.eventual && (
-            <div className="card card-hint" style={{ ['--cor' as string]: 'var(--c-rest)' }}>
-              <b>4º dia da semana.</b>
-              <p>A meta real é 3 musculações por semana. Se as 3 fixas saíram, este é ganho. Se o corpo pedir descanso, descanse sem culpa.</p>
-            </div>
-          )}
-        </>
-      )}
-
-      {plano.tipo === 'corrida' && plano.corrida && (
-        <div className="card card-hint" style={{ ['--cor' as string]: cor }}>
-          <b>{plano.corrida.tipo} · {plano.corrida.duracao}</b>
+      {plano.corrida && (
+        <div className="card card-hint" style={{ ['--cor' as string]: 'var(--c-run)' }}>
+          <b>Corrida de hoje: {plano.corrida.tipo} · {plano.corrida.duracao}</b>
           <p>{plano.corrida.descricao}</p>
-          <p style={{ marginTop: 8 }}>Equipamento: palmilha plana de gel PU. Registre pelo relógio, o app importa do Strava.</p>
         </div>
       )}
 
       {plano.tipo === 'descanso' && (
-        <>
-          <div className="card card-hint" style={{ ['--cor' as string]: cor }}>
-            <b>Dormir é treino.</b>
-            <p>7 a 9 horas é quando o corpo constrói músculo de verdade. Descanso programado, não dia perdido.</p>
-          </div>
-          <div className="card card-hint" style={{ ['--cor' as string]: cor }}>
-            <b>Proteína continua valendo.</b>
-            <p>O músculo se repara o dia inteiro, inclusive hoje. Não derrube a ingestão porque não treinou.</p>
-          </div>
-        </>
+        <div className="card card-hint" style={{ ['--cor' as string]: cor }}>
+          <b>Dia de descanso no plano.</b>
+          <p>Se quiser treinar mesmo assim, os treinos estão aí embaixo. Só não faça o mesmo grupo de ontem.</p>
+        </div>
       )}
 
-      {plano.tipo !== 'treino' && (
-        <OutroTreino onIniciar={onIniciar} />
-      )}
+      <div className="eyebrow" style={{ marginTop: 24, marginBottom: 4 }}>
+        Escolha o treino
+      </div>
+
+      {LETRAS.map((t) => {
+        const feito = feitosHoje.includes(t)
+        const eSugerido = t === sugerido && !feito
+        return (
+          <button
+            key={t}
+            className={`treino-opcao${eSugerido ? ' sugerido' : ''}${feito ? ' feito' : ''}`}
+            style={{ ['--cor' as string]: COR_TREINO[t] }}
+            onClick={() => onIniciar(t)}
+          >
+            <span className="letra">{t}</span>
+            <span className="txt">
+              <span className="nome">{ROTULOS[t]}</span>
+              <span className="meta">
+                {totalSeries(t)} séries
+                {eSugerido && ' · próximo da fila'}
+                {feito && ' · feito hoje'}
+              </span>
+            </span>
+            <span className="seta">›</span>
+          </button>
+        )
+      })}
     </div>
-  )
-}
-
-// Dia sem musculação programada: permite puxar qualquer treino do ciclo.
-// Sugestão, não obrigação (regra do app antigo: nada de travar por dia).
-function OutroTreino({ onIniciar }: { onIniciar: (t: LetraTreino) => void }) {
-  const [aberto, setAberto] = useState(false)
-  return (
-    <>
-      <button className="btn-ghost" onClick={() => setAberto(!aberto)}>
-        Treinar mesmo assim
-      </button>
-      {aberto && (['A', 'B', 'C', 'D'] as LetraTreino[]).map((t) => (
-        <button
-          key={t}
-          className="btn-ghost"
-          style={{ color: COR_TREINO[t], borderColor: COR_TREINO[t] }}
-          onClick={() => onIniciar(t)}
-        >
-          Treino {t} · {ROTULOS[t]}
-        </button>
-      ))}
-    </>
   )
 }
