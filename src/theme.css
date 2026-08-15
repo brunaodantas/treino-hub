@@ -351,22 +351,26 @@ input { font: inherit; color: inherit; }
 }
 
 /* ── Escolha de treino: os 4 sempre disponíveis ── */
+/* todos os treinos vêm circulados na própria cor: nenhum é "o certo" */
 .treino-opcao {
   display: flex;
   align-items: center;
   gap: 14px;
   width: 100%;
   text-align: left;
-  background: var(--panel);
-  border: 1px solid var(--line);
+  background: color-mix(in srgb, var(--cor) 8%, var(--panel));
+  border: 1.5px solid color-mix(in srgb, var(--cor) 55%, transparent);
   border-radius: var(--r2);
   padding: 14px 16px;
   margin-top: 10px;
   transition: transform 0.08s ease, border-color 0.15s ease;
 }
 .treino-opcao:active { transform: scale(0.99); }
-.treino-opcao.sugerido { border-color: var(--cor); background: color-mix(in srgb, var(--cor) 10%, var(--panel)); }
-.treino-opcao.feito { opacity: 0.5; }
+/* o último feito ganha contorno cheio, só para você saber onde parou */
+.treino-opcao.ultimo {
+  border-color: var(--cor);
+  box-shadow: 0 0 0 1px var(--cor) inset;
+}
 .treino-opcao .letra {
   flex: 0 0 auto;
   width: 44px; height: 44px;
@@ -387,7 +391,7 @@ input { font: inherit; color: inherit; }
   margin-top: 2px;
   letter-spacing: 0.03em;
 }
-.treino-opcao.sugerido .meta { color: var(--cor); font-weight: 700; }
+.treino-opcao.ultimo .meta { color: var(--cor); font-weight: 700; }
 .treino-opcao .seta { color: var(--faint); font-size: 1.5rem; line-height: 1; }
 
 /* ── Ações do topo: ajustes e recarregar ── */

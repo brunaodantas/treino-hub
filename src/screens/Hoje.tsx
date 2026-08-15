@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import {
-  planoDoDia, proximaLetra, ROTULOS, totalSeries, DIAS_LONGOS,
+  planoDoDia, ROTULOS, totalSeries, DIAS_LONGOS,
   type LetraTreino,
 } from '../logic/programa'
 import { corDoPlano, COR_TREINO } from '../logic/cores'
@@ -40,27 +40,33 @@ function fraseDoDia(tipo: string, d: Date): string {
   return lista[diaDoAno % lista.length]
 }
 
+// "hoje", "ontem", "há 3 dias": referência de quando foi o último treino
+function quando(iso: string): string {
+  const d = new Date(iso); d.setHours(0, 0, 0, 0)
+  const hoje = new Date(); hoje.setHours(0, 0, 0, 0)
+  const dias = Math.round((hoje.getTime() - d.getTime()) / 86400000)
+  if (dias <= 0) return 'hoje'
+  if (dias === 1) return 'ontem'
+  if (dias < 30) return `há ${dias} dias`
+  return new Date(iso).toLocaleDateString('pt-BR')
+}
+
 export default function Hoje({ onIniciar }: { onIniciar: (t: LetraTreino) => void }) {
   const agora = new Date()
   const plano = planoDoDia(agora)
   const cor = corDoPlano(plano)
-  const [feitosHoje, setFeitosHoje] = useState<LetraTreino[]>([])
-  const [sugerido, setSugerido] = useState<LetraTreino>('A')
+  const [ultimo, setUltimo] = useState<{ letra: LetraTreino; quando: string } | null>(null)
 
   useEffect(() => {
-    const inicio = new Date(); inicio.setHours(0, 0, 0, 0)
-    db.sessoes
-      .where('iniciadaEm').above(inicio.toISOString())
-      .and((s) => s.finalizadaEm !== null && s.treino !== null)
-      .toArray()
-      .then((ss) => setFeitosHoje(ss.map((s) => s.treino as LetraTreino)))
-    // fila deslizante: sugere o posterior ao último concluído COM letra
-    // (o histórico do Strava vem sem letra e não deve mover a fila)
+    // marca o ÚLTIMO treino feito, não o próximo: quem escolhe é o Bruno,
+    // o app só lembra de onde ele parou
     db.sessoes
       .orderBy('iniciadaEm').reverse()
       .filter((s) => s.finalizadaEm !== null && s.treino !== null)
       .first()
-      .then((s) => setSugerido(proximaLetra((s?.treino as LetraTreino) ?? null)))
+      .then((s) => setUltimo(
+        s ? { letra: s.treino as LetraTreino, quando: quando(s.iniciadaEm) } : null,
+      ))
   }, [])
 
   const dataFmt = agora.toLocaleDateString('pt-BR', { day: '2-digit', month: 'long' })
@@ -96,12 +102,11 @@ export default function Hoje({ onIniciar }: { onIniciar: (t: LetraTreino) => voi
       </div>
 
       {LETRAS.map((t) => {
-        const feito = feitosHoje.includes(t)
-        const eSugerido = t === sugerido && !feito
+        const eUltimo = ultimo?.letra === t
         return (
           <button
             key={t}
-            className={`treino-opcao${eSugerido ? ' sugerido' : ''}${feito ? ' feito' : ''}`}
+            className={`treino-opcao${eUltimo ? ' ultimo' : ''}`}
             style={{ ['--cor' as string]: COR_TREINO[t] }}
             onClick={() => onIniciar(t)}
           >
@@ -110,8 +115,7 @@ export default function Hoje({ onIniciar }: { onIniciar: (t: LetraTreino) => voi
               <span className="nome">{ROTULOS[t]}</span>
               <span className="meta">
                 {totalSeries(t)} séries
-                {eSugerido && ' · próximo da fila'}
-                {feito && ' · feito hoje'}
+                {eUltimo && ` · último treino, ${ultimo.quando}`}
               </span>
             </span>
             <span className="seta">›</span>

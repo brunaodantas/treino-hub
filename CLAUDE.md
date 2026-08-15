@@ -21,8 +21,11 @@ os dados de saúde chegam via Intervals.icu). Sem aba de nutrição, por decisã
 - Dias: Seg corrida intervalada · Ter/Qua/Sex/Sáb musculação+corrida conforme tabela · Qui/Dom descanso
 - **Fila deslizante (14/08/2026):** o treino do dia é sempre o POSTERIOR ao último concluído (A→B→C→A; D devolve pra A), nunca letra fixa por dia da semana. O calendário só define SE o dia é de musculação, corrida ou descanso, não QUAL treino. `proximaLetra()` em programa.ts
 - Meta real é 3 musculações/semana; D é o 4º dia, ganho e não obrigação, mas nunca rotular de "bônus" na UI
-- Nada de travar tela por dia: sugestão sim, bloqueio não. Desde 15/08/2026 a tela Hoje
-  lista **os 4 treinos sempre clicáveis**; o da fila só ganha destaque ("próximo da fila").
+- Nada de travar tela por dia. A tela Hoje lista **os 4 treinos sempre clicáveis**, todos
+  circulados na própria cor — nenhum é "o certo".
+- **O app marca o ÚLTIMO treino feito, não o próximo** (decisão de 15/08/2026): contorno cheio
+  e "último treino, há N dias". Quem escolhe é o Bruno; o app só lembra onde ele parou.
+  `proximaLetra()` continua em programa.ts mas não é mais usada na UI.
 - O título grande da tela Hoje é o **dia da semana** com uma frase curta abaixo, nunca o nome
   do treino: o nome estourava em duas linhas no iPhone e a tela virou um menu, não um comando.
 - Descanso pós-série: BASE 90s · ACESS 60s · CORE 45s; timer auto-dispara ao marcar série, beep ao zerar
