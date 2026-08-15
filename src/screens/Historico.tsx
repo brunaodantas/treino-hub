@@ -77,20 +77,40 @@ export default function Historico() {
   const [filtro, setFiltro] = useState<Filtro>('tudo')
   const [limite, setLimite] = useState(50)
   const [totais, setTotais] = useState({ m: 0, c: 0, o: 0 })
+  const [editando, setEditando] = useState(false)
 
-  useEffect(() => {
-    (async () => {
-      const [ss, cc, aa] = await Promise.all([
-        db.sessoes.filter((s) => s.finalizadaEm !== null).toArray(),
-        db.corridas.toArray(),
-        db.atividades.toArray(),
-      ])
-      setTotais({ m: ss.length, c: cc.length, o: aa.length })
-      const todos = [...ss.map(deSessao), ...cc.map(deCorrida), ...aa.map(deAtividade)]
-      todos.sort((x, y) => y.data.localeCompare(x.data))
-      setItens(todos)
-    })()
-  }, [])
+  const carregar = async () => {
+    const [ss, cc, aa] = await Promise.all([
+      db.sessoes.filter((s) => s.finalizadaEm !== null).toArray(),
+      db.corridas.toArray(),
+      db.atividades.toArray(),
+    ])
+    setTotais({ m: ss.length, c: cc.length, o: aa.length })
+    const todos = [...ss.map(deSessao), ...cc.map(deCorrida), ...aa.map(deAtividade)]
+    todos.sort((x, y) => y.data.localeCompare(x.data))
+    setItens(todos)
+  }
+
+  useEffect(() => { carregar() }, [])
+
+  // exclusão é local e definitiva: o histórico só é baixado uma vez por
+  // dispositivo, então o item apagado não volta sozinho. Não mexe no Strava.
+  async function excluir(item: Item) {
+    const id = Number(item.chave.slice(1))
+    const tipo = item.chave[0]
+    if (!confirm(`Excluir "${item.titulo}" de ${dia(item.data)}?\n\nApaga só aqui no app, não mexe no Strava.`)) return
+    if (tipo === 's') {
+      await db.series.where('sessaoId').equals(id).delete()
+      const naFila = await db.syncQueue.filter((q) => q.payload.includes(`"sessaoId":${id}`)).toArray()
+      await Promise.all(naFila.map((q) => db.syncQueue.delete(q.id!)))
+      await db.sessoes.delete(id)
+    } else if (tipo === 'c') {
+      await db.corridas.delete(id)
+    } else {
+      await db.atividades.delete(id)
+    }
+    await carregar()
+  }
 
   const filtrado = itens.filter((i) => {
     if (filtro === 'tudo') return true
@@ -131,7 +151,13 @@ export default function Historico() {
         ))}
       </div>
 
-      <div style={{ marginTop: 12 }}>
+      <div className="hist-acoes">
+        <button className="btn-editar" onClick={() => setEditando(!editando)}>
+          {editando ? 'Concluir' : 'Editar'}
+        </button>
+      </div>
+
+      <div style={{ marginTop: 4 }}>
         {visiveis.map((i) => (
           <div key={i.chave} className="hist-row" style={{ ['--cor' as string]: i.cor }}>
             <div className="hist-badge">{i.sigla}</div>
@@ -139,7 +165,14 @@ export default function Historico() {
               <div className="t1">{i.titulo}</div>
               <div className="t2">{i.detalhe}</div>
             </div>
-            {i.numero && <div className="num">{i.numero}</div>}
+            {!editando && i.numero && <div className="num">{i.numero}</div>}
+            {editando && (
+              <button className="btn-excluir" onClick={() => excluir(i)} aria-label={`Excluir ${i.titulo}`}>
+                <svg viewBox="0 0 24 24" fill="currentColor">
+                  <path d="M6 19a2 2 0 0 0 2 2h8a2 2 0 0 0 2-2V7H6v12zM19 4h-3.5l-1-1h-5l-1 1H5v2h14V4z" />
+                </svg>
+              </button>
+            )}
           </div>
         ))}
       </div>

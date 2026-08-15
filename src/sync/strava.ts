@@ -132,9 +132,24 @@ export async function importarStrava(): Promise<{ sessoes: number; corridas: num
 
   let nSessoes = 0, nCorridas = 0
   for (const a of acts) {
+    const dia = a.start_date.slice(0, 10)
+    const minutos = a.moving_time / 60
+
     if (a.type === 'WeightTraining') {
       const existe = await db.sessoes.where('stravaId').equals(a.id).first()
       if (existe) continue
+      // o histórico importado do seed veio sem stravaId, então a checagem acima
+      // não o enxerga: sem esta segunda passada por dia+duração, cada
+      // importação duplicaria as últimas semanas
+      const mesmoDia = await db.sessoes
+        .filter((s) => s.stravaId == null && s.iniciadaEm.slice(0, 10) === dia)
+        .toArray()
+      const gemea = mesmoDia.find((s) => {
+        if (!s.finalizadaEm) return false
+        const dur = (new Date(s.finalizadaEm).getTime() - new Date(s.iniciadaEm).getTime()) / 60000
+        return Math.abs(dur - minutos) <= 3
+      })
+      if (gemea) { await db.sessoes.update(gemea.id!, { stravaId: a.id }); continue }
       const inicio = new Date(a.start_date)
       await db.sessoes.add({
         treino: letraDoNome(a.name),
@@ -148,6 +163,11 @@ export async function importarStrava(): Promise<{ sessoes: number; corridas: num
     } else if (a.type === 'Run') {
       const existe = await db.corridas.where('stravaId').equals(a.id).first()
       if (existe) continue
+      const mesmoDia = await db.corridas
+        .filter((c) => c.stravaId == null && c.data === dia)
+        .toArray()
+      const gemea = mesmoDia.find((c) => Math.abs((c.duracaoMin ?? 0) - minutos) <= 3)
+      if (gemea) { await db.corridas.update(gemea.id!, { stravaId: a.id }); continue }
       const km = Math.round((a.distance / 1000) * 100) / 100
       const min = Math.round((a.moving_time / 60) * 10) / 10
       await db.corridas.add({

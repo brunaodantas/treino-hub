@@ -57,7 +57,12 @@ os dados de saúde chegam via Intervals.icu). Sem aba de nutrição, por decisã
 - Strava e Intervals.icu falam direto do navegador: ambos liberam CORS, não precisa de backend.
 - Strava: OAuth guarda `refresh_token` no IndexedDB e renova o access token sozinho quando falta <10 min.
   Era isso que fazia a conexão "cair" no app antigo. Client ID/Secret ficam no dispositivo, nunca no código.
-- Import do Strava começa da última atividade conhecida (menos 2 dias) e deduplica por `stravaId`, com paginação.
+- Import do Strava começa da última atividade conhecida (menos 2 dias) e deduplica por `stravaId`,
+  com paginação. **Segunda passada obrigatória por dia+duração (±3 min):** o histórico do seed veio
+  sem `stravaId`, então a dedupe por id não o enxerga e cada importação duplicaria as últimas semanas.
+  Ao achar a gêmea, carimba o `stravaId` nela em vez de criar outra.
+- **Excluir** no Histórico (botão Editar → lixeira): apaga local e definitivo, junto com as séries e
+  a pendência de envio. Não mexe no Strava, e o seed não volta (trava `seed_v2`).
 - Envio ao Strava é POST do app (o Strava não puxa nada): `type: 'WeightTraining'` e
   `start_date_local` em horário **local** — mandar o ISO em UTC punha a atividade 3h adiantada.
 - Google Fit **removido de vez**: a API REST foi descontinuada pelo Google (era a origem das quedas de conexão).

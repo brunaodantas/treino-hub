@@ -321,6 +321,30 @@ input { font: inherit; color: inherit; }
 
 .vazio { text-align: center; color: var(--faint); padding: 48px 20px; font-size: 0.85rem; line-height: 1.6; }
 
+/* ── Histórico: modo edição ── */
+.hist-acoes { display: flex; justify-content: flex-end; margin-top: 12px; }
+.btn-editar {
+  font-size: 0.66rem;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--muted);
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  padding: 7px 14px;
+}
+.btn-editar:active { color: var(--text); }
+.btn-excluir {
+  flex: 0 0 auto;
+  width: 36px; height: 36px;
+  border-radius: 10px;
+  border: 1px solid color-mix(in srgb, var(--c-a) 40%, transparent);
+  color: var(--c-a);
+  display: flex; align-items: center; justify-content: center;
+}
+.btn-excluir:active { background: color-mix(in srgb, var(--c-a) 18%, transparent); }
+.btn-excluir svg { width: 17px; height: 17px; }
+
 /* ── Gráficos (SVG puro) ── */
 .grafico { position: relative; margin-top: 10px; }
 .grafico svg { display: block; width: 100%; overflow: visible; }
