@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
-import { EXERCICIOS, ROTULOS, repsNum, type LetraTreino } from '../logic/programa'
+import { EXERCICIOS, nomeTreino, repsNum, type LetraTreino } from '../logic/programa'
 import { COR_TREINO } from '../logic/cores'
 import { db } from '../db/schema'
 
@@ -148,6 +148,8 @@ export default function Sessao({ letra, sessaoId, onFim }: Props) {
     <div style={estilo}>
       <header className="sessao-head">
         <div>
+          {/* header divide espaço com o cronômetro: só a letra cabe aqui,
+              o nome completo fica no eyebrow logo abaixo */}
           <div className="titulo">Treino {letra}</div>
           <div className="sets-progress"><b>{feitasTotal}</b> / {totalSets} séries</div>
         </div>
@@ -155,7 +157,7 @@ export default function Sessao({ letra, sessaoId, onFim }: Props) {
       </header>
 
       <div className="wrap" style={{ paddingBottom: restAlvo ? 120 : 24 }}>
-        <div className="eyebrow" style={{ marginBottom: 4 }}>{ROTULOS[letra]}</div>
+        <div className="eyebrow" style={{ marginBottom: 4 }}>{nomeTreino(letra)}</div>
 
         {exercicios.map((e) => {
           const feitasEx = Array.from({ length: e.series }, (_, i) => feitas.has(`${e.nome}|${i + 1}`))

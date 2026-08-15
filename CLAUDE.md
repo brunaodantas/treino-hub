@@ -35,6 +35,11 @@ os dados de saúde chegam via Intervals.icu). Sem aba de nutrição, por decisã
 - FCR limiares pessoais: ≤74 normal, ≤78 atenção, >80 alerta; descartar <65 (erro de sync)
 - HRV descontinuado em 17/07/2026: não buscar, não exibir
 - Duas partes de treino na mesma ida à academia = UMA atividade no Strava, não duas
+- **Nome padrão em toda a interface e no Strava: `nomeTreino()`** → "Treino D · Peito · Ombro · 2ª dose".
+  Ponto único: mudou ali, mudou em todo lugar. Exceção: o header da sessão usa só "Treino D",
+  porque divide a linha com o cronômetro.
+- **Registrar treino já feito** (tela Hoje): grava sessão concluída com a duração informada E
+  enfileira para o Strava. Sem o enfileiramento o treino ficava só no app e sumia do resumo.
 - Falha de envio ao Strava nunca pode ser só um toast: grava na `syncQueue` e mostra pendência
 
 ## Deploy
@@ -53,6 +58,8 @@ os dados de saúde chegam via Intervals.icu). Sem aba de nutrição, por decisã
 - Strava: OAuth guarda `refresh_token` no IndexedDB e renova o access token sozinho quando falta <10 min.
   Era isso que fazia a conexão "cair" no app antigo. Client ID/Secret ficam no dispositivo, nunca no código.
 - Import do Strava começa da última atividade conhecida (menos 2 dias) e deduplica por `stravaId`, com paginação.
+- Envio ao Strava é POST do app (o Strava não puxa nada): `type: 'WeightTraining'` e
+  `start_date_local` em horário **local** — mandar o ISO em UTC punha a atividade 3h adiantada.
 - Google Fit **removido de vez**: a API REST foi descontinuada pelo Google (era a origem das quedas de conexão).
 - Histórico antigo vem de `public/historico-seed.json` (807 atividades desde 2018 + 2.252 dias de métricas). Importa uma vez por dispositivo, com a trava `seed_importado` gravada DENTRO da
   transação para o StrictMode do React não duplicar. **Cuidado ao regerar: `json.dump` do Python escreve

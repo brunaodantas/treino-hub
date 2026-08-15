@@ -3,7 +3,7 @@
 // antes de cada chamada: conectou uma vez, não "cai" mais.
 import { db } from '../db/schema'
 import type { LetraTreino } from '../logic/programa'
-import { ROTULOS } from '../logic/programa'
+import { ROTULOS, nomeTreino } from '../logic/programa'
 
 interface AppStrava { clientId: string; clientSecret: string }
 interface TokensStrava { access: string; refresh: string; expiraEm: number }
@@ -179,9 +179,16 @@ export async function exportarPendencias(): Promise<{ enviadas: number; erros: n
     if (!s || !s.finalizadaEm) { await db.syncQueue.delete(p.id!); continue }
     const dur = Math.max(60, Math.round((new Date(s.finalizadaEm).getTime() - new Date(s.iniciadaEm).getTime()) / 1000))
     const body = new URLSearchParams({
-      name: `Força ${treino} - Treino Hub`,
+      // padrão único de nome no Strava; mudou aqui, mudou em todo lugar
+      name: nomeTreino(treino),
       type: 'WeightTraining',
-      start_date_local: s.iniciadaEm,
+      // o Strava lê este campo como horário LOCAL do atleta; mandar o ISO em UTC
+      // fazia a atividade aparecer 3h adiantada
+      start_date_local: (() => {
+        const d = new Date(s.iniciadaEm)
+        const p = (n: number) => String(n).padStart(2, '0')
+        return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}T${p(d.getHours())}:${p(d.getMinutes())}:${p(d.getSeconds())}`
+      })(),
       elapsed_time: String(dur),
       description: `${ROTULOS[treino]} · ${s.seriesFeitas}/${s.seriesTotal} séries · volume ${s.volumeKg} kg`,
     })

@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import { db, type Sessao, type CorridaLog, type Atividade } from '../db/schema'
 import { COR_TREINO } from '../logic/cores'
-import { ROTULOS, type LetraTreino } from '../logic/programa'
+import { nomeTreino, type LetraTreino } from '../logic/programa'
 
 type Filtro = 'tudo' | 'musculacao' | 'corrida' | 'outras'
 
@@ -40,7 +40,7 @@ function deSessao(s: Sessao): Item {
   return {
     chave: `s${s.id}`,
     data,
-    titulo: letra ? `Treino ${letra} · ${ROTULOS[letra]}` : (s.nome || 'Musculação'),
+    titulo: letra ? nomeTreino(letra) : (s.nome || 'Musculação'),
     detalhe: juntar(dia(data), min > 0 && `${min} min`, s.seriesTotal > 0 && `${s.seriesFeitas}/${s.seriesTotal} séries`),
     cor: letra ? COR_TREINO[letra] : 'var(--c-a)',
     sigla: letra ?? '💪',

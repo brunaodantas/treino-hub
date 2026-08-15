@@ -66,6 +66,11 @@ export const ROTULOS: Record<LetraTreino, string> = {
   D: 'Peito · Ombro · 2ª dose',
 }
 
+/** Nome completo, usado em toda a interface: "Treino A · Peito · Ombro · Tríceps" */
+export function nomeTreino(letra: LetraTreino): string {
+  return `Treino ${letra} · ${ROTULOS[letra]}`
+}
+
 // ── Agenda semanal ─────────────────────────────────────────────────────────────
 // Seg = só corrida · Ter = A + Z1 · Qua = B + Z1 · Qui = descanso
 // Sex = C + esteira · Sáb = D (eventual, não é bônus: é só o 4º dia) · Dom = descanso
