@@ -32,9 +32,15 @@ os dados de saúde chegam via Intervals.icu). Sem aba de nutrição, por decisã
 - Falha de envio ao Strava nunca pode ser só um toast: grava na `syncQueue` e mostra pendência
 
 ## Deploy
-- **Produção: https://treino-hub-bruno.vercel.app** (projeto Vercel `esquina/treino-hub-bruno`)
-- `treino-app-v2.vercel.app` é **outro app do Bruno** ("Ortopedia & Treino"). Não usar esse nome de projeto.
-- Deploy por `vercel deploy --prod --yes` de dentro de `treino-app-v2/`. Sem repo git.
+- **Produção: https://treino-hub.vercel.app** — projeto `treino-hub` na conta pessoal
+  **Hobby (gratuita)**, escopo `bruno-dantas-projects1`.
+- **Nunca publicar no time `esquina`**: é o plano pago da agência. Deploy sempre com
+  `vercel deploy --prod --yes --scope bruno-dantas-projects1` de dentro de `treino-app-v2/`.
+- Código em https://github.com/brunaodantas/treino-hub (público, sem credenciais).
+- Strava exige o domínio em strava.com/settings/api → "Domínio de autorização callback"
+  = `treino-hub.vercel.app`. Sem isso o OAuth devolve `redirect_uri invalid`.
+- Existe também um espelho em GitHub Pages (`BASE_PATH=/treino-hub/ npm run build` → `docs/`),
+  não usado no dia a dia.
 
 ## Sync (feito em 14/08/2026)
 - Strava e Intervals.icu falam direto do navegador: ambos liberam CORS, não precisa de backend.
@@ -42,8 +48,7 @@ os dados de saúde chegam via Intervals.icu). Sem aba de nutrição, por decisã
   Era isso que fazia a conexão "cair" no app antigo. Client ID/Secret ficam no dispositivo, nunca no código.
 - Import do Strava começa da última atividade conhecida (menos 2 dias) e deduplica por `stravaId`, com paginação.
 - Google Fit **removido de vez**: a API REST foi descontinuada pelo Google (era a origem das quedas de conexão).
-- Histórico antigo vem de `public/historico-seed.json` (309 musculações + 198 corridas, cache do app Streamlit
-  + Strava até 14/08). Importa uma vez por dispositivo, com a trava `seed_importado` gravada DENTRO da
+- Histórico antigo vem de `public/historico-seed.json` (807 atividades desde 2018 + 2.252 dias de métricas). Importa uma vez por dispositivo, com a trava `seed_importado` gravada DENTRO da
   transação para o StrictMode do React não duplicar. **Cuidado ao regerar: `json.dump` do Python escreve
   `NaN`, que quebra o `JSON.parse` do navegador — usar `allow_nan=False`.**
 - Sessões importadas sem letra no nome ficam com `treino: null` e **não movem a fila deslizante**.
