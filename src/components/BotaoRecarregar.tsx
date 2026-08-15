@@ -1,17 +1,34 @@
 import { useState } from 'react'
 
-// Recarrega a tela buscando versão nova do app. Fica em todas as abas porque
-// PWA instalado guarda a versão antiga em cache e não avisa que atualizou.
+// Recarrega buscando versão nova do app. Existe porque PWA instalado serve o
+// cache do Service Worker e não avisa que saiu versão nova.
+// Só chamar reg.update() + reload não basta: o SW novo fica em "waiting" e o
+// reload devolve a versão velha. É preciso mandar ele assumir (skipWaiting) e
+// esperar a troca de controlador antes de recarregar.
 export default function BotaoRecarregar() {
   const [girando, setGirando] = useState(false)
 
   async function recarregar() {
     setGirando(true)
     try {
-      // pede ao Service Worker a versão nova antes de recarregar; sem isso o
-      // reload devolve o mesmo cache e parece que o botão não fez nada
-      const regs = await navigator.serviceWorker?.getRegistrations?.() ?? []
-      await Promise.all(regs.map((r) => r.update()))
+      const reg = await navigator.serviceWorker?.getRegistration?.()
+      if (reg) {
+        await reg.update()
+        const novo = reg.waiting ?? reg.installing
+        if (novo) {
+          await new Promise<void>((resolve) => {
+            const pronto = () => resolve()
+            navigator.serviceWorker.addEventListener('controllerchange', pronto, { once: true })
+            novo.postMessage({ type: 'SKIP_WAITING' })
+            setTimeout(pronto, 3000) // não trava se o SW não responder
+          })
+        }
+      }
+      // limpa o cache do app; o SW reconstrói no próximo carregamento
+      if ('caches' in window) {
+        const nomes = await caches.keys()
+        await Promise.all(nomes.map((n) => caches.delete(n)))
+      }
     } catch { /* sem SW (aba comum): recarrega direto */ }
     location.reload()
   }
@@ -20,7 +37,7 @@ export default function BotaoRecarregar() {
     <button
       className="btn-recarregar"
       onClick={recarregar}
-      aria-label="Recarregar"
+      aria-label="Buscar atualização e recarregar"
       title="Recarregar"
     >
       <svg viewBox="0 0 24 24" fill="currentColor" className={girando ? 'girando' : ''}>
