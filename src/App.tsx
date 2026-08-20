@@ -5,6 +5,7 @@ import Sessao from './screens/Sessao'
 import Corrida from './screens/Corrida'
 import Historico from './screens/Historico'
 import Recuperacao from './screens/Recuperacao'
+import Protocolos from './screens/Protocolos'
 import Ajustes from './screens/Ajustes'
 import Evolucao from './screens/Evolucao'
 import BotaoRecarregar from './components/BotaoRecarregar'
@@ -64,6 +65,7 @@ export default function App() {
       {aba === 'corrida' && <Corrida />}
       {aba === 'historico' && <Historico />}
       {aba === 'recuperacao' && <Recuperacao />}
+      {aba === 'protocolos' && <Protocolos />}
       {aba === 'evolucao' && <Evolucao />}
       {aba === 'ajustes' && <Ajustes />}
       <div className="acoes-topo">
