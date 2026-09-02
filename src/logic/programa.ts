@@ -26,13 +26,14 @@ const ex = (
 ): Exercicio => ({ nome, series, reps, pesoAtual, pesoProg, bloco, descanso: DESCANSO_BLOCO[bloco] })
 
 export const EXERCICIOS: Record<LetraTreino, Exercicio[]> = {
-  // Superior A — compostos, peito · costas · ombro. Pesos herdados do antigo A/B.
+  // Superior A — compostos, um exercício de cada grupo (peito·costas·ombro·bíceps·tríceps),
+  // pra fechar 2x/semana em tudo junto com Superior B. Reajustado em 02/09/2026.
   A: [
     ex('Supino Reto Halter', 3, '8-10', 20, 22, 'BASE'),
     ex('Puxada Alta Polia', 3, '10-12', 45, 50, 'BASE'),
     ex('Desenvolvimento Ombro Máquina', 3, '10-12', 30, 35, 'BASE'),
-    ex('Remada Sentada c/ Pegada V', 3, '10-12', 45, 50, 'ACESS'),
-    ex('Elevação Lateral Polia', 2, '12-15', 9, 11, 'ACESS'),
+    ex('Rosca Direta Polia', 2, '12-15', 25, 26, 'ACESS'),
+    ex('Tríceps Corda Barra', 2, '12-15', 50, 55, 'ACESS'),
     ex('Prancha', 2, '40s', 0, 0, 'CORE'),
   ],
   // Inferior A — pesado, único dia com carga no joelho. Igual ao antigo Treino C, já validado.
@@ -45,14 +46,17 @@ export const EXERCICIOS: Record<LetraTreino, Exercicio[]> = {
     ex('Panturrilha Sentado', 2, '15-20', 50, 55, 'ACESS'),
     ex('Elevação de Pernas', 2, '12', 0, 0, 'CORE'),
   ],
-  // Superior B — acessórios, ombro · braços · peito. Pesos herdados do antigo B/D.
+  // Superior B — acessórios, mesmo padrão peito·costas·ombro·bíceps·tríceps do A,
+  // mais um extra de peito (prioridade declarada do Bruno desde 19/08/2026).
+  // Reajustado em 02/09/2026: antes costas, bíceps e tríceps só apareciam aqui,
+  // 1x/semana; agora aparecem em A e B, 2x/semana como o resto.
   C: [
     ex('Supino Inclinado Máquina', 3, '10-12', 40, 45, 'BASE'),
     ex('Crucifixo Máquina (Peck Deck)', 2, '12-15', 35, 40, 'ACESS'),
+    ex('Remada Sentada c/ Pegada V', 3, '10-12', 45, 50, 'BASE'),
     ex('Elevação Lateral Halter', 2, '12-15', 8, 10, 'ACESS'),
-    ex('Rosca Direta Polia', 2, '12-15', 25, 26, 'ACESS'),
-    ex('Tríceps Corda Barra', 2, '12-15', 50, 55, 'ACESS'),
     ex('Rosca Martelo Halter', 2, '10-12', 14, 16, 'ACESS'),
+    ex('Tríceps Francês Polia', 2, '10-12', 25, 30, 'ACESS'),
   ],
   // Inferior B — leve, posterior de cadeia. Sem agachamento nem lunge (acordado em 02/09/2026).
   // Exercícios novos: pesoAtual é ponto de partida conservador, ajustar na 1ª sessão real.
