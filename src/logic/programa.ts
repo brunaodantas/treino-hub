@@ -57,6 +57,7 @@ export const EXERCICIOS: Record<LetraTreino, Exercicio[]> = {
     ex('Elevação Lateral Halter', 2, '12-15', 8, 10, 'ACESS'),
     ex('Rosca Martelo Halter', 2, '10-12', 14, 16, 'ACESS'),
     ex('Tríceps Francês Polia', 2, '10-12', 25, 30, 'ACESS'),
+    ex('Encolhimento Halter', 2, '12-15', 24, 27, 'ACESS'),
   ],
   // Inferior B — leve, posterior de cadeia. Sem agachamento nem lunge (acordado em 02/09/2026).
   // Exercícios novos: pesoAtual é ponto de partida conservador, ajustar na 1ª sessão real.
