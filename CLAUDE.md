@@ -11,16 +11,15 @@ os dados de saúde chegam via Intervals.icu). Sem aba de nutrição, por decisã
 - Sem router: abas por estado em `App.tsx`
 
 ## Estrutura
-- `src/logic/programa.ts` — split A/B/C/D + agenda semanal (portado de `treino_app/logic/schedule.py`)
+- `src/logic/programa.ts` — split Superior/Inferior (A/B/C/D desde 02/09/2026, era A/B/C/D peito·costas·perna·peito 29/07 a 01/09/2026) + agenda semanal
 - `src/logic/cores.ts` — cor por tipo de sessão (A laranja · B azul · C dourado · D salmão · corrida ciano · descanso musgo)
 - `src/db/schema.ts` — Dexie: sessoes, series, corridas, wellness, pesos, syncQueue, config
 - `src/screens/` — Hoje (hero estilo RECOMP), Sessao, Corrida, Historico, Recuperacao
 - `src/theme.css` — tema industrial escuro, grão em SVG, Archivo Variable (wdth 118 display / 78 labels)
 
 ## Regras que vieram do app antigo (não perder)
-- Dias: Seg corrida intervalada · Ter/Qua/Sex/Sáb musculação+corrida conforme tabela · Qui/Dom descanso
-- **Fila deslizante (14/08/2026):** o treino do dia é sempre o POSTERIOR ao último concluído (A→B→C→A; D devolve pra A), nunca letra fixa por dia da semana. O calendário só define SE o dia é de musculação, corrida ou descanso, não QUAL treino. `proximaLetra()` em programa.ts
-- Meta real é 3 musculações/semana; D é o 4º dia, ganho e não obrigação, mas nunca rotular de "bônus" na UI
+- **Split trocado em 02/09/2026** para Superior/Inferior, 4 dias estruturais: Seg Superior A + corrida curta · Ter Inferior A (pesado, joelho) + corrida curta (nunca longa) · Qua descanso ou longa (alterna c/ Qui) · Qui Superior B + corrida · Sex parada total · Sáb Inferior B (leve) · Dom descanso. Não existe mais "3 reais + 1 bônus", ver `project-treino-hub-programa-atual` na memória do Claude Code.
+- **Fila deslizante (14/08/2026):** o treino do dia é sempre o POSTERIOR ao último concluído (A→B→C→D→A desde 02/09/2026; antes A→B→C→A com D voltando pra A), nunca letra fixa por dia da semana. O calendário só define SE o dia é de musculação, corrida ou descanso, não QUAL treino. `proximaLetra()` em programa.ts
 - Nada de travar tela por dia. A tela Hoje lista **os 4 treinos sempre clicáveis**, todos
   circulados na própria cor — nenhum é "o certo".
 - **O app marca o ÚLTIMO treino feito, não o próximo** (decisão de 15/08/2026): contorno cheio
