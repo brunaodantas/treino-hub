@@ -5,6 +5,7 @@ export const COR_TREINO: Record<LetraTreino, string> = {
   B: 'var(--c-b)',
   C: 'var(--c-c)',
   D: 'var(--c-d)',
+  E: 'var(--c-c)',
 }
 
 export function corDoPlano(p: PlanoDia): string {
