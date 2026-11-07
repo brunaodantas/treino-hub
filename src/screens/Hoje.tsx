@@ -1,13 +1,13 @@
 import { useEffect, useState } from 'react'
 import {
   planoDoDia, nomeTreino, totalSeries, DIAS_LONGOS,
-  META_SEMANAL, TREINOS_BASE, BONUS_DIAS, type LetraTreino,
+  META_SEMANAL, TREINOS_BASE, type LetraTreino,
 } from '../logic/programa'
 import { corDoPlano, COR_TREINO } from '../logic/cores'
 import WeekStrip from '../components/WeekStrip'
 import { db } from '../db/schema'
 
-const LETRAS: LetraTreino[] = ['A', 'B', 'C', 'D']
+const LETRAS: LetraTreino[] = ['A', 'B', 'C', 'D', 'E']
 
 // Frase do topo por tipo de dia. Varia com a data (determinístico, não sorteio:
 // abrir o app duas vezes no mesmo dia não troca a frase).
@@ -129,11 +129,6 @@ export default function Hoje({ onIniciar }: { onIniciar: (t: LetraTreino) => voi
       </div>
 
       <WeekStrip />
-      <div className="card card-hint" style={{ ['--cor' as string]: 'var(--c-a)' }}>
-        <b>Meta semanal: {Math.min(feitosSemana.base, META_SEMANAL)}/{META_SEMANAL} treinos base</b>
-        <p>Bônus opcional: {feitosSemana.bonus} · quarta ou sexta. Não conta como obrigação.</p>
-      </div>
-
       {plano.corrida && (
         <div className="card card-hint" style={{ ['--cor' as string]: 'var(--c-run)' }}>
           <b>Corrida de hoje: {plano.corrida.tipo} · {plano.corrida.duracao}</b>
@@ -183,6 +178,7 @@ export default function Hoje({ onIniciar }: { onIniciar: (t: LetraTreino) => voi
               <span className="nome">{nomeTreino(t)}</span>
               <span className="meta">
                 {totalSeries(t)} séries
+                {t === 'E' && ' · EXTRA OPCIONAL · qualquer dia'}
                 {eUltimo && ` · último treino, ${ultimo.quando}`}
               </span>
             </span>
@@ -191,20 +187,15 @@ export default function Hoje({ onIniciar }: { onIniciar: (t: LetraTreino) => voi
         )
       })}
 
-      {BONUS_DIAS.includes(agora.getDay()) && (
-        <div className="card card-hint" style={{ ['--cor' as string]: 'var(--c-c)', marginTop: 14 }}>
-          <b>Treino E · Bônus de ombros e braços (opcional)</b>
-          <p>Somente se estiver recuperado. Não muda a sequência dos treinos A–D.</p>
-          <button className="btn-ghost" onClick={() => registrando ? registrar('E') : onIniciar('E')}>
-            {registrando ? 'Registrar bônus E já feito' : 'Iniciar bônus E'}
-          </button>
-        </div>
-      )}
 
       <button className="btn-ghost" onClick={() => setRegistrando(!registrando)}>
         {registrando ? 'Cancelar' : 'Registrar treino já feito'}
       </button>
       {aviso && <p className="g-nota" style={{ textAlign: 'center' }}>{aviso}</p>}
+      <div className="card card-hint" style={{ ['--cor' as string]: 'var(--c-a)', marginTop: 22 }}>
+        <b>Meta semanal: {Math.min(feitosSemana.base, META_SEMANAL)}/{META_SEMANAL} treinos base</b>
+        <p>Treino E: {feitosSemana.bonus} bônus feitos. É opcional e não altera a sequência A–D.</p>
+      </div>
     </div>
   )
 }
