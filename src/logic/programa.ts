@@ -6,7 +6,11 @@
 // Perna pesada continua 1x/semana (mesmo risco de joelho de antes). Superior ganhou frequência (2x/semana).
 
 export type Bloco = 'BASE' | 'ACESS' | 'CORE'
-export type LetraTreino = 'A' | 'B' | 'C' | 'D'
+export type LetraTreino = 'A' | 'B' | 'C' | 'D' | 'E'
+export type TreinoBase = Exclude<LetraTreino, 'E'>
+export const META_SEMANAL = 4
+export const TREINOS_BASE: TreinoBase[] = ['A', 'B', 'C', 'D']
+export const BONUS_DIAS = [3, 5] // quarta ou sexta; escolha livre sem obrigação
 
 export interface Exercicio {
   nome: string
@@ -31,7 +35,7 @@ export const EXERCICIOS: Record<LetraTreino, Exercicio[]> = {
   A: [
     ex('Supino Reto Halter', 3, '8-10', 20, 22, 'BASE'),
     ex('Puxada Alta Polia', 3, '10-12', 45, 50, 'BASE'),
-    ex('Desenvolvimento Ombro Máquina', 3, '10-12', 30, 35, 'BASE'),
+    ex('Desenvolvimento Ombro Máquina', 2, '10-12', 30, 35, 'BASE'),
     ex('Rosca Direta Polia', 2, '12-15', 25, 26, 'ACESS'),
     ex('Tríceps Corda Barra', 2, '12-15', 50, 55, 'ACESS'),
     ex('Prancha', 2, '40s', 0, 0, 'CORE'),
@@ -51,20 +55,30 @@ export const EXERCICIOS: Record<LetraTreino, Exercicio[]> = {
   // Reajustado em 02/09/2026: antes costas, bíceps e tríceps só apareciam aqui,
   // 1x/semana; agora aparecem em A e B, 2x/semana como o resto.
   C: [
-    ex('Supino Inclinado Máquina', 3, '10-12', 40, 45, 'BASE'),
-    ex('Crucifixo Máquina (Peck Deck)', 2, '12-15', 35, 40, 'ACESS'),
+    ex('Supino Inclinado Máquina', 2, '10-12', 40, 45, 'BASE'),
+    ex('Crucifixo Máquina (Peck Deck)', 1, '12-15', 35, 40, 'ACESS'),
     ex('Remada Sentada c/ Pegada V', 3, '10-12', 45, 50, 'BASE'),
     ex('Elevação Lateral Halter', 2, '12-15', 8, 10, 'ACESS'),
     ex('Rosca Martelo Halter', 2, '10-12', 14, 16, 'ACESS'),
     ex('Tríceps Francês Polia', 2, '10-12', 25, 30, 'ACESS'),
-    ex('Encolhimento Halter', 2, '12-15', 24, 27, 'ACESS'),
-  ],
+      ],
   // Inferior B — leve, posterior de cadeia. Sem agachamento nem lunge (acordado em 02/09/2026).
   // Exercícios novos: pesoAtual é ponto de partida conservador, ajustar na 1ª sessão real.
   D: [
     ex('Levantamento Terra Romeno Halteres', 3, '10-12', 12, 14, 'BASE'),
     ex('Elevação Pélvica (Hip Thrust)', 3, '10-12', 20, 25, 'BASE'),
     ex('Panturrilha em Pé', 2, '15-20', 40, 45, 'ACESS'),
+    // Volume transferido de A/C: ombros e braços recebem o 3º estímulo.
+    ex('Elevação Lateral Halter', 2, '12-15', 8, 10, 'ACESS'),
+    ex('Rosca Martelo Halter', 2, '10-12', 14, 16, 'ACESS'),
+    ex('Tríceps Francês Polia', 1, '10-12', 25, 30, 'ACESS'),
+  ],
+  // Bônus opcional: curto, apenas acessórios de superior; nunca obrigatório.
+  // Se houver fadiga de quinta, omitir ou reduzir. Não altera a fila A→D.
+  E: [
+    ex('Elevação Lateral Halter', 2, '12-15', 8, 10, 'ACESS'),
+    ex('Rosca Martelo Halter', 2, '10-12', 14, 16, 'ACESS'),
+    ex('Tríceps Francês Polia', 1, '10-12', 25, 30, 'ACESS'),
   ],
 }
 
@@ -72,7 +86,8 @@ export const ROTULOS: Record<LetraTreino, string> = {
   A: 'Superior A · Peito · Costas · Ombro',
   B: 'Inferior A · Perna (pesado)',
   C: 'Superior B · Ombro · Braços',
-  D: 'Inferior B · Posterior de cadeia (leve)',
+  D: 'Inferior B leve · Posterior · Ombros · Braços',
+  E: 'Bônus opcional · Ombros · Braços',
 }
 
 /** Nome completo, usado em toda a interface: "Treino A · Peito · Ombro · Tríceps" */
@@ -80,14 +95,11 @@ export function nomeTreino(letra: LetraTreino): string {
   return `Treino ${letra} · ${ROTULOS[letra]}`
 }
 
-// ── Agenda semanal (vigente desde 02/09/2026) ───────────────────────────────────
-// Seg = Superior A + corrida curta · Ter = Inferior A (pesado) + corrida curta, NUNCA longa
-// Qua = descanso ou corrida longa (alterna com Qui) · Qui = Superior B + corrida (curta ou longa, alterna com Qua)
-// Sex = parada total, pedido explícito do Bruno (02/09/2026), sem treino nem corrida
-// Sáb = Inferior B (leve) · Dom = descanso
-// Curta = até 2 km, longa = perto de 5 km (limiar do próprio Bruno, 02/09/2026).
-// Regra de segurança: corrida longa nunca no mesmo dia do Inferior A (terça).
-// Os 4 dias são estruturais agora, sem "3 reais + 1 bônus" — mudança pedida por ele.
+// ── Agenda revisada: 4 dias fixos + 1 bônus opcional ─────────────────────────
+// Segunda A (corrida intervalada à noite); terça B (caminhada de manhã);
+// quarta descanso ou bônus; quinta C (caminhada de manhã);
+// sexta corrida intervalada 1:1 e, eventualmente, bônus E;
+// sábado D leve; domingo recuperação. Corrida sempre ajustável ao joelho.
 
 export type TipoDia = 'treino' | 'corrida' | 'descanso'
 
@@ -100,17 +112,17 @@ export interface Corrida {
 export interface PlanoDia {
   tipo: TipoDia
   treino: LetraTreino | null
-  eventual: boolean // não é mais usado no split atual (todo dia é estrutural) — mantido por compatibilidade
+  eventual: boolean // sinaliza dia de bônus opcional, sem meta obrigatória
   corrida: Corrida | null
 }
 
 // weekday JS: 0=Dom … 6=Sáb
 export const PLANO_SEMANA: Record<number, PlanoDia> = {
-  1: { tipo: 'treino', treino: 'A', eventual: false, corrida: { tipo: 'Curta', duracao: 'até 2 km', descricao: 'Rua ou esteira, dia mais cheio de trabalho.' } },
-  2: { tipo: 'treino', treino: 'B', eventual: false, corrida: { tipo: 'Curta', duracao: 'até 2 km', descricao: 'Nunca a longa aqui — dia de Inferior A, perna pesada.' } },
-  3: { tipo: 'corrida', treino: null, eventual: false, corrida: { tipo: 'Longa (alterna com quinta)', duracao: '~5 km', descricao: 'Rua ou esteira, intervalada 1:1.' } },
-  4: { tipo: 'treino', treino: 'C', eventual: false, corrida: { tipo: 'Curta ou longa (alterna com quarta)', duracao: 'até 2 km ou ~5 km', descricao: 'Sem carga no joelho hoje, corrida longa aqui não é problema.' } },
-  5: { tipo: 'descanso', treino: null, eventual: false, corrida: null },
+  1: { tipo: 'treino', treino: 'A', eventual: false, corrida: { tipo: 'Intervalada 1:1', duracao: 'ajustável', descricao: 'À noite, academia ou rua. Ajuste à recuperação.' } },
+  2: { tipo: 'treino', treino: 'B', eventual: false, corrida: { tipo: 'Caminhada', duracao: 'pela manhã', descricao: 'Sem corrida longa junto da perna; respeite o joelho.' } },
+  3: { tipo: 'descanso', treino: null, eventual: true, corrida: null },
+  4: { tipo: 'treino', treino: 'C', eventual: false, corrida: { tipo: 'Caminhada', duracao: 'pela manhã', descricao: 'Atividade habitual; controle fadiga para o fim de semana.' } },
+  5: { tipo: 'corrida', treino: null, eventual: true, corrida: { tipo: 'Intervalada 1:1', duracao: 'ajustável', descricao: 'Rua ou academia. Musculação apenas se optar pelo bônus.' } },
   6: { tipo: 'treino', treino: 'D', eventual: false, corrida: null },
   0: { tipo: 'descanso', treino: null, eventual: false, corrida: null },
 }
@@ -128,10 +140,10 @@ export function planoDoDia(d: Date = new Date()): PlanoDia {
 // Ciclo: A (Superior A) → B (Inferior A) → C (Superior B) → D (Inferior B) → A.
 // Como os 4 dias agora são estruturais (não há mais "D eventual"), a fila
 // estabiliza sozinha no mesmo dia da semana se ele treinar sempre Seg/Ter/Qui/Sáb.
-const SUCESSOR: Record<LetraTreino, LetraTreino> = { A: 'B', B: 'C', C: 'D', D: 'A' }
+const SUCESSOR: Record<TreinoBase, TreinoBase> = { A: 'B', B: 'C', C: 'D', D: 'A' }
 
 export function proximaLetra(ultimoConcluido: LetraTreino | null): LetraTreino {
-  return ultimoConcluido ? SUCESSOR[ultimoConcluido] : 'A'
+  return ultimoConcluido && ultimoConcluido !== 'E' ? SUCESSOR[ultimoConcluido] : 'A'
 }
 
 export function totalSeries(letra: LetraTreino): number {
@@ -142,4 +154,9 @@ export function totalSeries(letra: LetraTreino): number {
 export function repsNum(reps: string): number {
   const m = reps.match(/\d+/)
   return m ? parseInt(m[0], 10) : 0
+}
+
+/** E nunca entra na fila deslizante: encontrar último treino BASE concluído. */
+export function ultimoTreinoBase<T extends { treino: LetraTreino | null }>(sessoes: T[]): TreinoBase | null {
+  return (sessoes.find(s => s.treino !== null && s.treino !== 'E')?.treino as TreinoBase | undefined) ?? null
 }
