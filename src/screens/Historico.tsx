@@ -40,7 +40,7 @@ function deSessao(s: Sessao): Item {
   return {
     chave: `s${s.id}`,
     data,
-    titulo: letra ? nomeTreino(letra) : (s.nome || 'Musculação'),
+    titulo: s.nome || (letra ? nomeTreino(letra) : 'Musculação'),
     detalhe: juntar(dia(data), min > 0 && `${min} min`, s.seriesTotal > 0 && `${s.seriesFeitas}/${s.seriesTotal} séries`),
     cor: letra ? COR_TREINO[letra] : 'var(--c-a)',
     sigla: letra ?? '💪',
