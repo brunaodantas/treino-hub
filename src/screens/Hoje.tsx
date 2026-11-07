@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import {
   planoDoDia, nomeTreino, totalSeries, DIAS_LONGOS,
-  type LetraTreino,
+  META_SEMANAL, TREINOS_BASE, BONUS_DIAS, type LetraTreino,
 } from '../logic/programa'
 import { corDoPlano, COR_TREINO } from '../logic/cores'
 import WeekStrip from '../components/WeekStrip'
@@ -59,19 +59,29 @@ export default function Hoje({ onIniciar }: { onIniciar: (t: LetraTreino) => voi
   const [registrando, setRegistrando] = useState(false)
   const [minutos, setMinutos] = useState('30')
   const [aviso, setAviso] = useState('')
+  const [feitosSemana, setFeitosSemana] = useState({ base: 0, bonus: 0 })
 
   // marca o ÚLTIMO treino feito, não o próximo: quem escolhe é o Bruno,
   // o app só lembra de onde ele parou
   const carregarUltimo = () =>
     db.sessoes
       .orderBy('iniciadaEm').reverse()
-      .filter((s) => s.finalizadaEm !== null && s.treino !== null)
+      .filter((s) => s.finalizadaEm !== null && s.treino !== null && s.treino !== 'E')
       .first()
       .then((s) => setUltimo(
         s ? { letra: s.treino as LetraTreino, quando: quando(s.iniciadaEm) } : null,
       ))
 
-  useEffect(() => { carregarUltimo() }, [])
+  const carregarSemana = () => db.sessoes.filter(s => s.finalizadaEm !== null).toArray().then(sessoes => {
+    const inicio = new Date(); inicio.setHours(0, 0, 0, 0)
+    inicio.setDate(inicio.getDate() - ((inicio.getDay() + 6) % 7))
+    const limite = inicio.getTime()
+    const semana = sessoes.filter(s => new Date(s.iniciadaEm).getTime() >= limite)
+    setFeitosSemana({ base: semana.filter(s => s.treino !== null && TREINOS_BASE.includes(s.treino as typeof TREINOS_BASE[number])).length,
+      bonus: semana.filter(s => s.treino === 'E').length })
+  })
+
+  useEffect(() => { carregarUltimo(); carregarSemana() }, [])
 
   // treino feito fora do app (esqueceu de abrir, ou treinou sem o celular):
   // grava direto como concluído, sem série a série
@@ -102,6 +112,7 @@ export default function Hoje({ onIniciar }: { onIniciar: (t: LetraTreino) => voi
     setRegistrando(false)
     setAviso(`Treino ${letra} registrado: ${min} min. Envie ao Strava em Ajustes.`)
     await carregarUltimo()
+    await carregarSemana()
     setTimeout(() => setAviso(''), 4000)
   }
 
@@ -118,6 +129,10 @@ export default function Hoje({ onIniciar }: { onIniciar: (t: LetraTreino) => voi
       </div>
 
       <WeekStrip />
+      <div className="card card-hint" style={{ ['--cor' as string]: 'var(--c-a)' }}>
+        <b>Meta semanal: {Math.min(feitosSemana.base, META_SEMANAL)}/{META_SEMANAL} treinos base</b>
+        <p>Bônus opcional: {feitosSemana.bonus} · quarta ou sexta. Não conta como obrigação.</p>
+      </div>
 
       {plano.corrida && (
         <div className="card card-hint" style={{ ['--cor' as string]: 'var(--c-run)' }}>
@@ -126,7 +141,7 @@ export default function Hoje({ onIniciar }: { onIniciar: (t: LetraTreino) => voi
         </div>
       )}
 
-      {plano.tipo === 'descanso' && (
+      {plano.tipo === 'descanso' && !plano.eventual && (
         <div className="card card-hint" style={{ ['--cor' as string]: cor }}>
           <b>Dia de descanso no plano.</b>
           <p>Se quiser treinar mesmo assim, os treinos estão aí embaixo. Só não faça o mesmo grupo de ontem.</p>
@@ -175,6 +190,16 @@ export default function Hoje({ onIniciar }: { onIniciar: (t: LetraTreino) => voi
           </button>
         )
       })}
+
+      {BONUS_DIAS.includes(agora.getDay()) && (
+        <div className="card card-hint" style={{ ['--cor' as string]: 'var(--c-c)', marginTop: 14 }}>
+          <b>Treino E · Bônus de ombros e braços (opcional)</b>
+          <p>Somente se estiver recuperado. Não muda a sequência dos treinos A–D.</p>
+          <button className="btn-ghost" onClick={() => registrando ? registrar('E') : onIniciar('E')}>
+            {registrando ? 'Registrar bônus E já feito' : 'Iniciar bônus E'}
+          </button>
+        </div>
+      )}
 
       <button className="btn-ghost" onClick={() => setRegistrando(!registrando)}>
         {registrando ? 'Cancelar' : 'Registrar treino já feito'}

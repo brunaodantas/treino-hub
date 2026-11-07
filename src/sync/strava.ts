@@ -92,7 +92,7 @@ async function tokenValido(): Promise<string> {
 }
 
 function letraDoNome(nome: string): LetraTreino | null {
-  const m = nome.match(/(?:Treino|Força)\s+([A-D])\b/)
+  const m = nome.match(/(?:Treino|Força)\s+([A-E])\b/)
   return (m ? m[1] : null) as LetraTreino | null
 }
 
