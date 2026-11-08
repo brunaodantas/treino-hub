@@ -6,6 +6,7 @@ import {
 import { corDoPlano, COR_TREINO } from '../logic/cores'
 import WeekStrip from '../components/WeekStrip'
 import { db } from '../db/schema'
+import { importarStrava, stravaConectado } from '../sync/strava'
 
 const LETRAS: LetraTreino[] = ['A', 'B', 'C', 'D', 'E']
 
@@ -60,6 +61,7 @@ export default function Hoje({ onIniciar }: { onIniciar: (t: LetraTreino) => voi
   const [minutos, setMinutos] = useState('30')
   const [aviso, setAviso] = useState('')
   const [feitosSemana, setFeitosSemana] = useState({ base: 0, bonus: 0 })
+  const [statusSync, setStatusSync] = useState('')
 
   // marca o ÚLTIMO treino feito, não o próximo: quem escolhe é o Bruno,
   // o app só lembra de onde ele parou
@@ -77,11 +79,35 @@ export default function Hoje({ onIniciar }: { onIniciar: (t: LetraTreino) => voi
     inicio.setDate(inicio.getDate() - ((inicio.getDay() + 6) % 7))
     const limite = inicio.getTime()
     const semana = sessoes.filter(s => new Date(s.iniciadaEm).getTime() >= limite)
-    setFeitosSemana({ base: semana.filter(s => s.treino !== null && TREINOS_BASE.includes(s.treino as typeof TREINOS_BASE[number])).length,
-      bonus: semana.filter(s => s.treino === 'E').length })
+    // Sessões do Strava sem letra A-D continuam contando como musculação.
+    // Apenas o bônus E identificado explicitamente fica fora da meta.
+    // Usar IDs evita duplicar registros do mesmo treino já reconhecidos no banco.
+    const base = semana.filter(s =>
+      (s.treino !== null && TREINOS_BASE.includes(s.treino as typeof TREINOS_BASE[number])) ||
+      (s.treino === null && s.fonte === 'strava' && !/(?:Treino|Força)\\s+E\\b/i.test(s.nome ?? ''))
+    )
+    setFeitosSemana({ base: base.length, bonus: semana.filter(s => s.treino === 'E').length })
   })
 
-  useEffect(() => { carregarUltimo(); carregarSemana() }, [])
+  useEffect(() => {
+    let ativo = true
+    async function atualizar() {
+      await Promise.all([carregarUltimo(), carregarSemana()])
+      if (!(await stravaConectado()) || !ativo) return
+      setStatusSync('Conferindo treinos no Strava…')
+      try {
+        await importarStrava()
+        if (!ativo) return
+        await Promise.all([carregarUltimo(), carregarSemana()])
+        setStatusSync('')
+      } catch (erro) {
+        if (ativo) setStatusSync('Não foi possível sincronizar com o Strava. Verifique em Ajustes.')
+        console.warn('Falha na sincronização semanal:', erro)
+      }
+    }
+    atualizar()
+    return () => { ativo = false }
+  }, [])
 
   // treino feito fora do app (esqueceu de abrir, ou treinou sem o celular):
   // grava direto como concluído, sem série a série
@@ -193,8 +219,10 @@ export default function Hoje({ onIniciar }: { onIniciar: (t: LetraTreino) => voi
       </button>
       {aviso && <p className="g-nota" style={{ textAlign: 'center' }}>{aviso}</p>}
       <div className="card card-hint" style={{ ['--cor' as string]: 'var(--c-a)', marginTop: 22 }}>
-        <b>Meta semanal: {Math.min(feitosSemana.base, META_SEMANAL)}/{META_SEMANAL} treinos base</b>
+        <b>Meta semanal: {Math.min(feitosSemana.base, META_SEMANAL)}/{META_SEMANAL} treinos de força</b>
         <p>Treino E: {feitosSemana.bonus} bônus feitos. É opcional e não altera a sequência A–D.</p>
+        <p>Inclui treinos de musculação importados do Strava, mesmo sem letra identificada.</p>
+        {statusSync && <p role="status">{statusSync}</p>}
       </div>
     </div>
   )
