@@ -111,12 +111,19 @@ export async function importarStrava(): Promise<{ sessoes: number; corridas: num
     ultimaCorrida ? new Date(ultimaCorrida.data + 'T00:00').getTime() : 0,
   ]
   const maisRecente = Math.max(...marcos)
-  const desde = Math.floor(
-    (maisRecente > 0 ? maisRecente - 2 * 86400000 : Date.now() - 30 * 86400000) / 1000,
-  )
+  // Reconfere a semana inteira, mesmo que uma corrida recente já tenha sido importada.
+  // Caso contrário uma musculação anterior à última corrida poderia ficar de fora.
+  const inicioSemana = new Date()
+  inicioSemana.setHours(0, 0, 0, 0)
+  inicioSemana.setDate(inicioSemana.getDate() - ((inicioSemana.getDay() + 6) % 7))
+  const limiteSemana = inicioSemana.getTime() - 86400000
+  const desde = Math.floor(Math.min(
+    maisRecente > 0 ? maisRecente - 2 * 86400000 : Date.now() - 30 * 86400000,
+    limiteSemana,
+  ) / 1000)
 
   const acts: Array<{
-    id: number; name: string; type: string; start_date: string
+    id: number; name: string; type: string; sport_type?: string; start_date: string
     moving_time: number; distance: number; average_heartrate: number | null
   }> = []
   for (let pagina = 1; pagina <= 3; pagina++) {
@@ -135,7 +142,7 @@ export async function importarStrava(): Promise<{ sessoes: number; corridas: num
     const dia = a.start_date.slice(0, 10)
     const minutos = a.moving_time / 60
 
-    if (a.type === 'WeightTraining') {
+    if (a.type === 'WeightTraining' || a.sport_type === 'WeightTraining') {
       const existe = await db.sessoes.where('stravaId').equals(a.id).first()
       if (existe) continue
       // o histórico importado do seed veio sem stravaId, então a checagem acima
