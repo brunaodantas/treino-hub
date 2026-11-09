@@ -4,6 +4,7 @@
 import { db } from '../db/schema'
 import type { LetraTreino } from '../logic/programa'
 import { ROTULOS, nomeTreino } from '../logic/programa'
+import { letraDoNome, possivelMesmoTreino, tipoParaMeta } from '../logic/metaSemanal'
 
 interface AppStrava { clientId: string; clientSecret: string }
 interface TokensStrava { access: string; refresh: string; expiraEm: number }
@@ -91,11 +92,6 @@ async function tokenValido(): Promise<string> {
   return t.access
 }
 
-function letraDoNome(nome: string): LetraTreino | null {
-  const m = nome.match(/(?:Treino|Força)\s+([A-E])\b/)
-  return (m ? m[1] : null) as LetraTreino | null
-}
-
 // importa atividades novas (musculação e corrida), dedupe por stravaId.
 // Começa da última atividade conhecida (menos 2 dias de folga), para nunca
 // deixar lacuna nem depender de janela fixa.
@@ -123,10 +119,10 @@ export async function importarStrava(): Promise<{ sessoes: number; corridas: num
   ) / 1000)
 
   const acts: Array<{
-    id: number; name: string; type: string; sport_type?: string; start_date: string
+    id: number; name: string; type: string; sport_type?: string; start_date: string; start_date_local?: string
     moving_time: number; distance: number; average_heartrate: number | null
   }> = []
-  for (let pagina = 1; pagina <= 3; pagina++) {
+  for (let pagina = 1; pagina <= 50; pagina++) {
     const resp = await fetch(
       `https://www.strava.com/api/v3/athlete/activities?after=${desde}&per_page=100&page=${pagina}`,
       { headers: { Authorization: `Bearer ${token}` } },
@@ -135,36 +131,40 @@ export async function importarStrava(): Promise<{ sessoes: number; corridas: num
     const lote = await resp.json() as typeof acts
     acts.push(...lote)
     if (lote.length < 100) break
+    if (pagina === 50) throw new Error('Limite de 5000 atividades atingido: sincronização incompleta')
   }
 
   let nSessoes = 0, nCorridas = 0
   for (const a of acts) {
-    const dia = a.start_date.slice(0, 10)
+    const dia = (a.start_date_local ?? a.start_date).slice(0, 10)
     const minutos = a.moving_time / 60
 
     if (a.type === 'WeightTraining' || a.sport_type === 'WeightTraining') {
       const existe = await db.sessoes.where('stravaId').equals(a.id).first()
       if (existe) continue
-      // o histórico importado do seed veio sem stravaId, então a checagem acima
-      // não o enxerga: sem esta segunda passada por dia+duração, cada
-      // importação duplicaria as últimas semanas
-      const mesmoDia = await db.sessoes
-        .filter((s) => s.stravaId == null && s.iniciadaEm.slice(0, 10) === dia)
-        .toArray()
-      const gemea = mesmoDia.find((s) => {
-        if (!s.finalizadaEm) return false
-        const dur = (new Date(s.finalizadaEm).getTime() - new Date(s.iniciadaEm).getTime()) / 60000
-        return Math.abs(dur - minutos) <= 3
-      })
-      if (gemea) { await db.sessoes.update(gemea.id!, { stravaId: a.id }); continue }
       const inicio = new Date(a.start_date)
-      await db.sessoes.add({
+      const recebida = {
         treino: letraDoNome(a.name),
         nome: a.name,
         iniciadaEm: inicio.toISOString(),
         finalizadaEm: new Date(inicio.getTime() + a.moving_time * 1000).toISOString(),
+        fonte: 'strava' as const,
+        stravaId: a.id,
+      }
+      const de = new Date(inicio.getTime() - 10 * 60000).toISOString()
+      const ate = new Date(inicio.getTime() + 10 * 60000).toISOString()
+      const candidatas = await db.sessoes.where('iniciadaEm').between(de, ate, true, true)
+        .filter(s => s.stravaId == null && possivelMesmoTreino(s, recebida) &&
+          tipoParaMeta(s) === tipoParaMeta(recebida))
+        .toArray()
+      // Apenas uma candidata compatível pode ser vinculada automaticamente.
+      if (candidatas.length === 1) {
+        await db.sessoes.update(candidatas[0].id!, { stravaId: a.id })
+        continue
+      }
+      await db.sessoes.add({
+        ...recebida,
         volumeKg: 0, seriesFeitas: 0, seriesTotal: 0,
-        fonte: 'strava', stravaId: a.id,
       })
       nSessoes++
     } else if (a.type === 'Run') {
