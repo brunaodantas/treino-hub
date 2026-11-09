@@ -1,12 +1,13 @@
 import { useEffect, useState } from 'react'
 import {
   planoDoDia, nomeTreino, totalSeries, DIAS_LONGOS,
-  META_SEMANAL, TREINOS_BASE, type LetraTreino,
+  META_SEMANAL, type LetraTreino,
 } from '../logic/programa'
 import { corDoPlano, COR_TREINO } from '../logic/cores'
 import WeekStrip from '../components/WeekStrip'
 import { db } from '../db/schema'
 import { importarStrava, stravaConectado } from '../sync/strava'
+import { resumoSemanal } from '../logic/metaSemanal'
 
 const LETRAS: LetraTreino[] = ['A', 'B', 'C', 'D', 'E']
 
@@ -75,18 +76,7 @@ export default function Hoje({ onIniciar }: { onIniciar: (t: LetraTreino) => voi
       ))
 
   const carregarSemana = () => db.sessoes.filter(s => s.finalizadaEm !== null).toArray().then(sessoes => {
-    const inicio = new Date(); inicio.setHours(0, 0, 0, 0)
-    inicio.setDate(inicio.getDate() - ((inicio.getDay() + 6) % 7))
-    const limite = inicio.getTime()
-    const semana = sessoes.filter(s => new Date(s.iniciadaEm).getTime() >= limite)
-    // Sessões do Strava sem letra A-D continuam contando como musculação.
-    // Apenas o bônus E identificado explicitamente fica fora da meta.
-    // Usar IDs evita duplicar registros do mesmo treino já reconhecidos no banco.
-    const base = semana.filter(s =>
-      (s.treino !== null && TREINOS_BASE.includes(s.treino as typeof TREINOS_BASE[number])) ||
-      (s.treino === null && s.fonte === 'strava' && !/(?:Treino|Força)\\s+E\\b/i.test(s.nome ?? ''))
-    )
-    setFeitosSemana({ base: base.length, bonus: semana.filter(s => s.treino === 'E').length })
+    setFeitosSemana(resumoSemanal(sessoes, new Date()))
   })
 
   useEffect(() => {
