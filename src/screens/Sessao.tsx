@@ -33,6 +33,17 @@ export default function Sessao({ letra, sessaoId, onFim }: Props) {
   const cor = COR_TREINO[letra]
   const totalSets = exercicios.reduce((s, e) => s + e.series, 0)
 
+  // Sinalização educativa: não altera série, repetição, carga ou histórico.
+  // Só máquinas estáveis de superiores, sem movimentos explosivos para o joelho.
+  const potenciaSugerida: Partial<Record<LetraTreino, Record<string, string>>> = {
+    A: {
+      'Desenvolvimento Ombro Máquina': 'Empurre com intenção de velocidade, sem trancos e sem travar os cotovelos; retorno controlado. Carga confortável, nunca até a falha.',
+    },
+    C: {
+      'Remada Sentada c/ Pegada V': 'Puxe com intenção de velocidade, sem impulsionar com o tronco; retorno controlado. Carga confortável, nunca até a falha.',
+    },
+  }
+
   // séries feitas: chave "exercicio|ordem"
   const [feitas, setFeitas] = useState<Set<string>>(new Set())
   const [pesos, setPesos] = useState<Record<string, number>>({})
@@ -166,6 +177,13 @@ export default function Sessao({ letra, sessaoId, onFim }: Props) {
           return (
             <div key={e.nome} className={`ex-card${completo ? ' completo' : ''}`}>
               <div className="ex-nome">{e.nome}</div>
+              {potenciaSugerida[letra]?.[e.nome] && (
+                <div className="ex-potencia" role="note">
+                  <strong>⚡ POTÊNCIA · sugestão opcional</strong>
+                  <span>{potenciaSugerida[letra][e.nome]}</span>
+                  <small>Use apenas após aquecer e se a técnica estiver estável. Não acelere todas as séries nem some volume extra.</small>
+                </div>
+              )}
               <div className="ex-meta">
                 {e.series}×{e.reps} · descanso {e.descanso}s
                 {e.pesoProg > 0 && <> · próx. alvo <span className="alvo">{e.pesoProg} kg</span></>}
