@@ -1,9 +1,9 @@
 import { useEffect, useState } from 'react'
 import {
-  planoDoDia, nomeTreino, totalSeries, DIAS_LONGOS,
+  nomeTreino, totalSeries, DIAS_LONGOS,
   META_SEMANAL, type LetraTreino,
 } from '../logic/programa'
-import { corDoPlano, COR_TREINO } from '../logic/cores'
+import { COR_TREINO } from '../logic/cores'
 import WeekStrip from '../components/WeekStrip'
 import { db } from '../db/schema'
 import { importarStrava, stravaConectado } from '../sync/strava'
@@ -55,8 +55,7 @@ function quando(iso: string): string {
 
 export default function Hoje({ onIniciar }: { onIniciar: (t: LetraTreino) => void }) {
   const agora = new Date()
-  const plano = planoDoDia(agora)
-  const cor = corDoPlano(plano)
+  const cor = 'var(--c-c)'
   const [ultimo, setUltimo] = useState<{ letra: LetraTreino; quando: string } | null>(null)
   const [registrando, setRegistrando] = useState(false)
   const [minutos, setMinutos] = useState('30')
@@ -155,24 +154,10 @@ export default function Hoje({ onIniciar }: { onIniciar: (t: LetraTreino) => voi
         <h1 className="hero-dia" style={{ marginTop: 8 }}>
           <span className="tipo" style={{ color: cor }}>{DIAS_LONGOS[agora.getDay()]}</span>
         </h1>
-        <div className="hero-sub">{fraseDoDia(plano.tipo, agora)}</div>
+        <div className="hero-sub">{fraseDoDia('treino', agora)}</div>
       </div>
 
       <WeekStrip />
-      {plano.corrida && (
-        <div className="card card-hint" style={{ ['--cor' as string]: 'var(--c-run)' }}>
-          <b>Corrida de hoje: {plano.corrida.tipo} · {plano.corrida.duracao}</b>
-          <p>{plano.corrida.descricao}</p>
-        </div>
-      )}
-
-      {plano.tipo === 'descanso' && !plano.eventual && (
-        <div className="card card-hint" style={{ ['--cor' as string]: cor }}>
-          <b>Dia de descanso no plano.</b>
-          <p>Se quiser treinar mesmo assim, os treinos estão aí embaixo. Só não faça o mesmo grupo de ontem.</p>
-        </div>
-      )}
-
       <div className="eyebrow" style={{ marginTop: 24, marginBottom: 4 }}>
         {registrando ? 'Qual treino você fez?' : 'Escolha o treino'}
       </div>

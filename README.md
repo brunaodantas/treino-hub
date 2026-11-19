@@ -81,3 +81,13 @@ preservados integralmente da versão atual de master.
   instalado por `npx playwright install chromium`. Para Chrome já instalado,
   informe `PLAYWRIGHT_CHROME` com o caminho do executável. Usa banco isolado,
   dados fictícios e Strava simulado. Não acessa credenciais pessoais.
+
+### Foto da OKOK
+
+Em Evolução > Composição corporal, selecione “Ler foto da OKOK”. O
+reconhecimento é feito localmente no navegador, sem enviar a imagem. O app
+preenche a prévia, destaca possíveis dúvidas na leitura e pede confirmação da
+condição de jejum. Confira os valores antes de salvar. Foto com mesma data e
+peso de um registro existente exige confirmação adicional para evitar repetir
+a medição. Os dados do reconhecedor são servidos pelo próprio app e incluídos
+no cache offline. Fotos nunca são armazenadas no histórico.

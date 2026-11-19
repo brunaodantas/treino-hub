@@ -26,6 +26,10 @@ export default function Composicao({ onVoltar }: { onVoltar: () => void }) {
   const [previa, setPrevia] = useState<MedicaoCorporal[]>([])
   const [selecionados, setSelecionados] = useState<Set<string>>(new Set())
   const [ocupado, setOcupado] = useState(false)
+  const [fotoPendente, setFotoPendente] = useState(false)
+  const [condicaoConfirmada, setCondicaoConfirmada] = useState(false)
+  const [duplicadaConfirmada, setDuplicadaConfirmada] = useState(false)
+  const [avisosFoto, setAvisosFoto] = useState<string[]>([])
   const [progresso, setProgresso] = useState(0)
   const [pagina, setPagina] = useState(0)
   const worker = useRef<Worker | null>(null)
@@ -35,10 +39,27 @@ export default function Composicao({ onVoltar }: { onVoltar: () => void }) {
   async function salvar(e: React.SubmitEvent<HTMLFormElement>) {
     e.preventDefault(); setErro(''); setAviso(''); setOcupado(true)
     try {
+      if (fotoPendente && !condicaoConfirmada) throw new Error('Informe se a medição foi em jejum antes de salvar.')
       const preenchidos = Object.fromEntries(Object.entries(valores).filter(([, v]) => v?.trim()).map(([k, v]) => [k, Number(v!.replace(',', '.'))]))
+      const duplicada = medicoes.some(m => m.data === data && m.valores.pesoKg !== undefined && m.valores.pesoKg === preenchidos.pesoKg)
+      if (fotoPendente && duplicada && !duplicadaConfirmada) throw new Error('Já existe uma medição com esta data e peso. Confira antes de salvar outra.')
       await salvarMedicoes([{ id: crypto.randomUUID(), data, ...(horario ? { horario } : {}), origem: origem.trim() || 'Manual', contexto, fonte: 'manual', valores: preenchidos }])
-      await carregar(); setForm(false); setValores({}); setAviso('Medição salva neste dispositivo.')
+      await carregar(); setForm(false); setValores({}); setFotoPendente(false); setAvisosFoto([]); setAviso('Medição salva neste dispositivo.')
     } catch (e) { setErro(e instanceof Error ? e.message : 'Não foi possível salvar.') }
+    finally { setOcupado(false) }
+  }
+  async function abrirFoto(arquivo?: File) {
+    if (!arquivo) return
+    setOcupado(true); setAviso(''); setErro(''); setAvisosFoto([])
+    try {
+      const { lerTextoFoto, extrairFoto } = await import('../importacao/foto')
+      const r = extrairFoto(await lerTextoFoto(arquivo))
+      if (!Object.keys(r.valores).length) throw new Error('Não foi possível ler as medidas desta imagem. Tente uma imagem mais nítida.')
+      setData(r.data); setHorario(r.horario); setValores(r.valores); setOrigem('OKOK')
+      setContexto('nao-informado'); setCondicaoConfirmada(false); setDuplicadaConfirmada(false)
+      setAvisosFoto(r.avisos); setFotoPendente(true); setForm(true)
+      setAviso('Foto lida. Confira data e cada valor, informe a condição e salve.')
+    } catch (e) { setErro(e instanceof Error ? e.message : 'Não foi possível ler a foto.') }
     finally { setOcupado(false) }
   }
   function preparar(lista: MedicaoCorporal[], ignorados = 0) {
@@ -89,12 +110,19 @@ export default function Composicao({ onVoltar }: { onVoltar: () => void }) {
     <h1>Composição corporal</h1>
     <p className="comp-nota">Medições locais, sem envio de arquivos. Linha de base a partir de 18/11/2026. Compare medições feitas nas mesmas condições.</p>
     <p className="comp-nota">Músculo esquelético, massa muscular OKOK e massa magra Apple Saúde são medidas diferentes. O app não as converte nem substitui.</p>
-    <button className="btn-main" onClick={() => setForm(!form)} disabled={ocupado}>{form ? 'Fechar cadastro' : 'Nova medição manual'}</button>
+    <label className="comp-arquivo">Ler foto da OKOK<input type="file" accept="image/*" disabled={ocupado} onChange={e => { abrirFoto(e.target.files?.[0]); e.target.value = '' }} /></label>
+    <p className="comp-nota">A foto é lida no aparelho. Confira os valores antes de salvar.</p>
+    <button className="btn-main" onClick={() => { setForm(!form); if (form) { setFotoPendente(false); setAvisosFoto([]) } }} disabled={ocupado}>{form ? 'Fechar cadastro' : 'Nova medição manual'}</button>
     {form && <form onSubmit={salvar} className="comp-form">
       <label>Data<input type="date" min="2026-11-18" max={diaHoje()} required value={data} onChange={e => setData(e.target.value)} /></label>
       <label>Horário, se conhecido<input type="time" value={horario} onChange={e => setHorario(e.target.value)} /></label>
       <label>Origem<input value={origem} maxLength={100} onChange={e => setOrigem(e.target.value)} /></label>
-      <label>Condição<select aria-label="Condição" value={contexto} onChange={e => setContexto(e.target.value as typeof contexto)}><option value="nao-informado">Jejum não informado</option><option value="jejum">Em jejum</option><option value="outro">Fora de jejum</option></select></label>
+      <label>Condição<select aria-label="Condição" value={contexto} onChange={e => { setContexto(e.target.value as typeof contexto); setCondicaoConfirmada(true) }}><option value="nao-informado">Jejum não informado</option><option value="jejum">Em jejum</option><option value="outro">Fora de jejum</option></select></label>
+      {fotoPendente && <>
+        <p className="comp-nota">Escolha a condição e confira todos os campos. Valores não reconhecidos ficam vazios. {avisosFoto.length > 0 && ` Confira especialmente: ${avisosFoto.map(a => CAMPOS[a.split(':')[0] as CampoCorporal]?.[0] ?? a).join(', ')}.`}</p>
+        <label className="comp-check"><input type="checkbox" checked={condicaoConfirmada} onChange={e => setCondicaoConfirmada(e.target.checked)} />Confirmei a condição de jejum acima</label>
+        {medicoes.some(m => m.data === data && m.valores.pesoKg !== undefined && m.valores.pesoKg === Number((valores.pesoKg ?? '').replace(',', '.'))) && <label className="comp-check"><input type="checkbox" checked={duplicadaConfirmada} onChange={e => setDuplicadaConfirmada(e.target.checked)} />Já existe uma medição com esta data e peso. Quero salvar outra mesmo assim.</label>}
+      </>}
       <p className="comp-nota">Preencha somente os valores medidos. Campos vazios ficam sem dado.</p>
       <div className="comp-campos">{campos.map(k => <label key={k}>{CAMPOS[k][0]} ({CAMPOS[k][1]})<input inputMode="decimal" value={valores[k] ?? ''} onChange={e => setValores({ ...valores, [k]: e.target.value })} /></label>)}</div>
       <button className="btn-main" type="submit" disabled={ocupado}>Salvar medição</button>
