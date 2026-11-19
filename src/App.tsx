@@ -8,6 +8,7 @@ import Recuperacao from './screens/Recuperacao'
 import Protocolos from './screens/Protocolos'
 import Ajustes from './screens/Ajustes'
 import Evolucao from './screens/Evolucao'
+import Composicao from './screens/Composicao'
 import BotaoRecarregar from './components/BotaoRecarregar'
 import { db } from './db/schema'
 import { importarSeed } from './db/importar'
@@ -66,7 +67,8 @@ export default function App() {
       {aba === 'historico' && <Historico />}
       {aba === 'recuperacao' && <Recuperacao />}
       {aba === 'protocolos' && <Protocolos />}
-      {aba === 'evolucao' && <Evolucao />}
+      {aba === 'evolucao' && <Evolucao onComposicao={() => setAba('composicao')} />}
+      {aba === 'composicao' && <Composicao onVoltar={() => setAba('evolucao')} />}
       {aba === 'ajustes' && <Ajustes />}
       <div className="acoes-topo">
         <button

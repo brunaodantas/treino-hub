@@ -463,3 +463,31 @@ input { font: inherit; color: inherit; }
 
 /* a tela tem título grande à esquerda; reserva espaço pros botões não cobrirem */
 .screen > div:first-child { padding-right: 96px; }
+
+/* Composição corporal segue os controles e cores do app. */
+.composicao { --comp-muted: #b5b0a7; }
+.composicao h1 { font-size: 1.65rem; margin: 10px 0 14px; text-wrap: balance; }
+.composicao h2 { font-size: 1.15rem; margin-bottom: 16px; }
+.comp-nota { color: var(--comp-muted); font-size: .85rem; line-height: 1.55; margin: 12px 0; overflow-wrap: anywhere; }
+.comp-form, .comp-import, .comp-grafico, .comp-previa { margin: 20px 0; padding: 18px 0; border-top: 1px solid #494238; }
+.composicao label { display: flex; flex-direction: column; gap: 8px; font-size: .85rem; line-height: 1.4; margin: 12px 0; }
+.composicao input:not([type=checkbox]), .composicao select { width: 100%; min-width: 0; min-height: 44px; padding: 10px; background: var(--panel-2); color: var(--text); border: 1px solid #756a59; border-radius: var(--r1); font: inherit; }
+.comp-campos { display: grid; grid-template-columns: minmax(0,1fr) minmax(0,1fr); gap: 0 14px; }
+.comp-campos label { justify-content: space-between; }
+.composicao .comp-check, .composicao .comp-registro { flex-direction: row; align-items: flex-start; gap: 12px; }
+.composicao input[type=checkbox] { width: 22px; height: 22px; flex-shrink: 0; accent-color: var(--c-run); }
+.comp-registro { display: flex; font-size: .85rem; line-height: 1.6; border-bottom: 1px solid #494238; padding: 14px 0; overflow-wrap: anywhere; }
+.comp-registro span { min-width: 0; }
+.comp-valor { font-size: 2rem; margin-top: 22px; }
+.comp-valor small { font-size: 1rem; color: var(--comp-muted); }
+.comp-erro { color: #ffb9a5; line-height: 1.5; margin: 12px 0; }
+.composicao summary { cursor: pointer; padding: 12px 0; min-height: 44px; font-size: .95rem; }
+.comp-paginacao { display: flex; justify-content: space-between; align-items: center; margin: 16px 0; }
+.comp-paginacao button { min-height: 44px; padding: 8px; }
+.composicao button:disabled { opacity: .5; cursor: default; }
+.composicao :focus-visible { outline: 2px solid var(--c-run); outline-offset: 3px; }
+@media (max-width: 359px) { .comp-campos { grid-template-columns: minmax(0,1fr); } }
+.composicao .btn-ghost { color: var(--comp-muted); }
+.composicao .btn-main { letter-spacing: .04em; }
+@media (prefers-reduced-motion: reduce) { .composicao button { transition: none; } }
+.composicao > * { animation: none; }

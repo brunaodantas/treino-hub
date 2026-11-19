@@ -1,0 +1,105 @@
+import { chromium, expect } from '@playwright/test'
+const browser = await chromium.launch({ ...(process.env.PLAYWRIGHT_CHROME ? { executablePath: process.env.PLAYWRIGHT_CHROME } : {}), headless: true })
+const context = await browser.newContext({viewport:{width:390,height:844},timezoneId:'America/Bahia'})
+context.setDefaultTimeout(15000)
+const page = await context.newPage()
+const baseline = {name:'composicao.json',mimeType:'application/json',buffer:Buffer.from(JSON.stringify({formato:'treino-hub-composicao-v1',medicoes:[{id:'fixture',data:'2026-11-18',fonte:'manual',origem:'OKOK teste',contexto:'jejum',valores:{pesoKg:80.5,musculoEsqueleticoKg:30,massaMuscularKg:55}}]}))}
+const erros=[]; const envios=[]
+page.on('pageerror', e=>erros.push(e.message))
+page.on('request', r=>{if(r.method()==='POST') envios.push(r.url())})
+try {
+await page.route('**/historico-seed.json',r=>r.fulfill({json:{sessoes:[],corridas:[],atividades:[],diario:[]}}))
+await page.goto('http://127.0.0.1:5173')
+console.log('Abriu aplicação')
+await page.getByRole('button',{name:'Evolução',exact:true}).click()
+await page.getByRole('button',{name:'Composição corporal ›'}).click()
+console.log('Abriu composição')
+await expect(page.getByRole('heading',{name:'Composição corporal',exact:true})).toBeVisible()
+await page.getByText('Importar Apple Saúde ou backup',{exact:true}).click()
+await page.locator('input[type=file]').setInputFiles(baseline)
+await expect(page.getByRole('heading',{name:'Conferir importação'})).toBeVisible()
+console.log('Prévia pronta')
+await expect(page.getByText('Todas as medições (0)',{exact:true})).toBeVisible()
+await page.getByRole('button',{name:'Selecionar todos',exact:true}).click()
+await page.getByRole('button',{name:'Salvar 1 registros selecionados',exact:true}).click()
+await expect(page.locator('.comp-valor')).toHaveText('80,5 kg')
+await expect(page.getByText('Todas as medições (1)',{exact:true})).toBeVisible()
+// Reimportação do arquivo não duplica a medição.
+await page.locator('input[type=file]').setInputFiles(baseline)
+await expect(page.getByRole('status')).toContainText('0 registros novos')
+await page.getByRole('button',{name:'Nova medição manual',exact:true}).click()
+await page.getByLabel('Data',{exact:true}).fill('2026-11-19')
+await page.getByLabel('Peso (kg)',{exact:true}).fill('83,2')
+await page.getByLabel('Cintura (cm)',{exact:true}).fill('90')
+await page.getByLabel('Condição',{exact:true}).selectOption('jejum')
+await page.getByRole('button',{name:'Salvar medição',exact:true}).click()
+await expect(page.locator('.comp-valor')).toHaveText('83,2 kg')
+await expect(page.locator('.comp-grafico svg')).toBeVisible()
+await page.getByLabel('Medida',{exact:true}).selectOption('musculoEsqueleticoKg')
+await expect(page.locator('.comp-valor')).toHaveText('30 kg')
+await page.getByLabel('Medida',{exact:true}).selectOption('massaMuscularKg')
+await expect(page.locator('.comp-valor')).toHaveText('55 kg')
+await page.getByLabel('Medida',{exact:true}).selectOption('massaMagraKg')
+await expect(page.locator('.comp-grafico')).toContainText('Sem medição desta medida')
+const xml = '<HealthData><Record type="HKQuantityTypeIdentifierBodyMass" sourceName="OKOK" unit="kg" value="84" startDate="2026-11-17 14:00:00 -0300"/><Record type="HKQuantityTypeIdentifierLeanBodyMass" sourceName="OKOK" unit="kg" value="62" startDate="2026-11-19 06:00:00 -0300"/></HealthData>'
+await page.locator('input[type=file]').setInputFiles({name:'export.xml',mimeType:'text/xml',buffer:Buffer.from(xml)})
+await expect(page.getByRole('heading',{name:'Conferir importação'})).toBeVisible()
+console.log('Prévia pronta')
+await expect(page.getByRole('status')).toContainText('1 registros novos')
+await expect(page.locator('.comp-previa')).not.toContainText('17/11/2026')
+await page.getByRole('button',{name:'Selecionar todos',exact:true}).click()
+await page.getByRole('button',{name:'Salvar 1 registros selecionados',exact:true}).click()
+await expect(page.locator('.comp-valor')).toHaveText('62 kg')
+await expect(page.locator('.comp-grafico')).toContainText('jejum não informado')
+await page.getByLabel('Somente medições em jejum').check()
+await expect(page.locator('.comp-grafico')).toContainText('Sem medição desta medida em jejum')
+await page.getByLabel('Somente medições em jejum').uncheck()
+await page.getByLabel('Medida',{exact:true}).selectOption('pesoKg')
+await page.reload()
+await page.getByRole('button',{name:'Evolução',exact:true}).click()
+await page.getByRole('button',{name:'Composição corporal ›'}).click()
+console.log('Abriu composição')
+await expect(page.getByText('Todas as medições (3)',{exact:true})).toBeVisible()
+for (const width of [320,390,768]) {
+ await page.setViewportSize({width,height:844})
+ expect(await page.evaluate(()=>document.documentElement.scrollWidth <= window.innerWidth)).toBe(true)
+}
+await page.setViewportSize({width:390,height:844})
+expect(await page.getByRole('heading',{name:'Composição corporal',exact:true}).count()).toBe(1)
+await page.screenshot({path:'/tmp/treino-composicao-mobile.png',fullPage:false,animations:'disabled'})
+// Strava simulado: corrida recente não pode esconder musculação no começo da semana.
+let chamadas=0,after=0
+const now = new Date(); const d = new Date(now); d.setDate(d.getDate()-((d.getDay()+6)%7)); d.setHours(10,0,0,0)
+const stamp=d.toISOString()
+const local=(d)=>new Date(d.getTime()-3*3600000).toISOString().slice(0,19)+'Z'
+await page.route('https://www.strava.com/api/v3/athlete/activities?**',r=>{chamadas++;after=Number(new URL(r.request().url()).searchParams.get('after'));return r.fulfill({json:[
+{id:101,type:'WeightTraining',name:'Musculação',start_date:stamp,start_date_local:local(d),moving_time:0,elapsed_time:2400,distance:0},
+{id:102,type:'Run',name:'Corrida',start_date:now.toISOString(),start_date_local:local(now),moving_time:1800,distance:4000},
+{id:103,type:'WeightTraining',name:'Treino E',start_date:new Date(d.getTime()+86400000).toISOString(),start_date_local:local(new Date(d.getTime()+86400000)),moving_time:1200,distance:0}
+]})})
+await page.evaluate(async ({stamp})=>{
+ const {db}=await import('/src/db/schema.ts')
+ await db.config.put({chave:'strava_tokens',valor:JSON.stringify({access:'ficticio',refresh:'ficticio',expiraEm:Date.now()/1000+7200})})
+ await db.corridas.add({data:new Date().toLocaleDateString('sv-SE'),stravaId:99,fonte:'strava',tipo:'Run'})
+ // Registro rápido já existente + pendência deve ser vinculado, não reenviado.
+ const id=await db.sessoes.add({treino:'A',iniciadaEm:stamp,finalizadaEm:new Date(Date.parse(stamp)+2400000).toISOString(),fonte:'app',stravaId:null,volumeKg:0,seriesFeitas:0,seriesTotal:0})
+ await db.syncQueue.add({tipo:'strava_sessao',payload:JSON.stringify({sessaoId:id,treino:'A'}),criadoEm:stamp,tentativas:0,ultimoErro:null})
+},{stamp})
+await page.getByRole('button',{name:'Hoje',exact:true}).click()
+await expect(page.getByText('Meta semanal: 1/4 treinos de força',{exact:true})).toBeVisible()
+await expect(page.getByText(/Treino E: 1 bônus feitos/)).toBeVisible()
+const monday=new Date(d);monday.setHours(0,0,0,0)
+expect(after < monday.getTime()/1000).toBe(true)
+const r=await page.evaluate(async()=>{
+ const { importarStrava, exportarPendencias }=await import('/src/sync/strava.ts')
+ await Promise.all([importarStrava(),importarStrava()])
+ const enviados=await exportarPendencias()
+ const {db}=await import('/src/db/schema.ts')
+ return {sessoes:await db.sessoes.count(),fila:await db.syncQueue.count(),enviados}
+})
+expect(r).toEqual({sessoes:2,fila:0,enviados:{enviadas:0,erros:0}})
+expect(envios).toEqual([])
+expect(chamadas).toBe(2)
+expect(erros).toEqual([])
+console.log('OK: cadastro, baseline privada, prévia XML, rejeição de 17/11, fontes, gráficos, persistência, 320/390/768px, Strava, concorrência e fila sem duplicação. Nenhum POST.')
+} finally { await browser.close() }

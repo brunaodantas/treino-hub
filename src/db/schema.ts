@@ -1,5 +1,6 @@
 // Banco local (IndexedDB via Dexie). Tudo grava aqui primeiro; sync depois.
 import Dexie, { type Table } from 'dexie'
+import type { MedicaoCorporal } from '../logic/composicao'
 import type { LetraTreino } from '../logic/programa'
 
 export interface Sessao {
@@ -92,6 +93,7 @@ export interface Config {
 }
 
 class TreinoDB extends Dexie {
+  composicao!: Table<MedicaoCorporal, string>
   sessoes!: Table<Sessao, number>
   series!: Table<Serie, number>
   corridas!: Table<CorridaLog, number>
@@ -120,6 +122,7 @@ class TreinoDB extends Dexie {
       atividades: '++id, data, tipo',
       diario: 'data',
     })
+    this.version(4).stores({ composicao: 'id, data, fonte' })
   }
 }
 

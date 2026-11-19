@@ -1,7 +1,7 @@
 // Ajustes não entra na barra: é raro e vira ícone no topo, junto do recarregar.
 // Seis abas em 375 px não cabem sem cortar o rótulo.
-export type Aba = 'hoje' | 'corrida' | 'historico' | 'recuperacao' | 'protocolos' | 'evolucao' | 'ajustes'
-type AbaBarra = Exclude<Aba, 'ajustes'>
+export type Aba = 'hoje' | 'corrida' | 'historico' | 'recuperacao' | 'protocolos' | 'evolucao' | 'ajustes' | 'composicao'
+type AbaBarra = Exclude<Aba, 'ajustes' | 'composicao'>
 
 const ICONES: Record<AbaBarra, string> = {
   hoje: 'M4 13h6V4H4v9zm0 7h6v-5H4v5zm10 0h6v-9h-6v9zm0-16v5h6V4h-6z',
@@ -25,7 +25,7 @@ export default function TabBar({ aba, onChange }: { aba: Aba; onChange: (a: Aba)
   return (
     <nav className="tabbar">
       {(Object.keys(NOMES) as AbaBarra[]).map((a) => (
-        <button key={a} className={a === aba ? 'ativa' : ''} onClick={() => onChange(a)}>
+        <button key={a} className={(a === aba || (a === 'evolucao' && aba === 'composicao')) ? 'ativa' : ''} onClick={() => onChange(a)}>
           <svg viewBox="0 0 24 24" fill="currentColor"><path d={ICONES[a]} /></svg>
           {NOMES[a]}
         </button>

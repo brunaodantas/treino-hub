@@ -4,6 +4,7 @@
 import { db } from '../db/schema'
 import type { LetraTreino } from '../logic/programa'
 import { ROTULOS, nomeTreino } from '../logic/programa'
+import { letraDoNome, possivelMesmoTreino, tipoParaMeta } from '../logic/metaSemanal'
 
 interface AppStrava { clientId: string; clientSecret: string }
 interface TokensStrava { access: string; refresh: string; expiraEm: number }
@@ -91,15 +92,10 @@ async function tokenValido(): Promise<string> {
   return t.access
 }
 
-function letraDoNome(nome: string): LetraTreino | null {
-  const m = nome.match(/(?:Treino|Força)\s+([A-E])\b/)
-  return (m ? m[1] : null) as LetraTreino | null
-}
-
 // importa atividades novas (musculação e corrida), dedupe por stravaId.
 // Começa da última atividade conhecida (menos 2 dias de folga), para nunca
 // deixar lacuna nem depender de janela fixa.
-export async function importarStrava(): Promise<{ sessoes: number; corridas: number }> {
+async function importarStravaInterno(): Promise<{ sessoes: number; corridas: number }> {
   const token = await tokenValido()
 
   const ultimaSessao = await db.sessoes.orderBy('iniciadaEm').reverse()
@@ -111,15 +107,22 @@ export async function importarStrava(): Promise<{ sessoes: number; corridas: num
     ultimaCorrida ? new Date(ultimaCorrida.data + 'T00:00').getTime() : 0,
   ]
   const maisRecente = Math.max(...marcos)
-  const desde = Math.floor(
-    (maisRecente > 0 ? maisRecente - 2 * 86400000 : Date.now() - 30 * 86400000) / 1000,
-  )
+  // Reconfere a semana inteira, mesmo que uma corrida recente já tenha sido importada.
+  // Caso contrário uma musculação anterior à última corrida poderia ficar de fora.
+  const inicioSemana = new Date()
+  inicioSemana.setHours(0, 0, 0, 0)
+  inicioSemana.setDate(inicioSemana.getDate() - ((inicioSemana.getDay() + 6) % 7))
+  const limiteSemana = inicioSemana.getTime() - 86400000
+  const desde = Math.floor(Math.min(
+    maisRecente > 0 ? maisRecente - 2 * 86400000 : Date.now() - 30 * 86400000,
+    limiteSemana,
+  ) / 1000)
 
   const acts: Array<{
-    id: number; name: string; type: string; start_date: string
-    moving_time: number; distance: number; average_heartrate: number | null
+    id: number; name: string; type: string; sport_type?: string; start_date: string; start_date_local?: string
+    moving_time: number; elapsed_time?: number; distance: number; average_heartrate: number | null
   }> = []
-  for (let pagina = 1; pagina <= 3; pagina++) {
+  for (let pagina = 1; pagina <= 50; pagina++) {
     const resp = await fetch(
       `https://www.strava.com/api/v3/athlete/activities?after=${desde}&per_page=100&page=${pagina}`,
       { headers: { Authorization: `Bearer ${token}` } },
@@ -128,39 +131,46 @@ export async function importarStrava(): Promise<{ sessoes: number; corridas: num
     const lote = await resp.json() as typeof acts
     acts.push(...lote)
     if (lote.length < 100) break
+    if (pagina === 50) throw new Error('Limite de 5000 atividades atingido: sincronização incompleta')
   }
 
   let nSessoes = 0, nCorridas = 0
   for (const a of acts) {
-    const dia = a.start_date.slice(0, 10)
+    const dia = (a.start_date_local ?? a.start_date).slice(0, 10)
     const minutos = a.moving_time / 60
 
-    if (a.type === 'WeightTraining') {
+    if (a.type === 'WeightTraining' || a.sport_type === 'WeightTraining') {
       const existe = await db.sessoes.where('stravaId').equals(a.id).first()
       if (existe) continue
-      // o histórico importado do seed veio sem stravaId, então a checagem acima
-      // não o enxerga: sem esta segunda passada por dia+duração, cada
-      // importação duplicaria as últimas semanas
-      const mesmoDia = await db.sessoes
-        .filter((s) => s.stravaId == null && s.iniciadaEm.slice(0, 10) === dia)
-        .toArray()
-      const gemea = mesmoDia.find((s) => {
-        if (!s.finalizadaEm) return false
-        const dur = (new Date(s.finalizadaEm).getTime() - new Date(s.iniciadaEm).getTime()) / 60000
-        return Math.abs(dur - minutos) <= 3
-      })
-      if (gemea) { await db.sessoes.update(gemea.id!, { stravaId: a.id }); continue }
       const inicio = new Date(a.start_date)
-      await db.sessoes.add({
+      // Musculação inclui pausas entre séries: usa o tempo total quando disponível.
+      const segundos = a.elapsed_time && a.elapsed_time > 0 ? a.elapsed_time : a.moving_time
+      if (!Number.isFinite(segundos) || segundos <= 0 || !Number.isFinite(inicio.getTime())) continue
+      const recebida = {
         treino: letraDoNome(a.name),
         nome: a.name,
         iniciadaEm: inicio.toISOString(),
-        finalizadaEm: new Date(inicio.getTime() + a.moving_time * 1000).toISOString(),
+        finalizadaEm: new Date(inicio.getTime() + segundos * 1000).toISOString(),
+        fonte: 'strava' as const,
+        stravaId: a.id,
+      }
+      const de = new Date(inicio.getTime() - 10 * 60000).toISOString()
+      const ate = new Date(inicio.getTime() + 10 * 60000).toISOString()
+      const candidatas = await db.sessoes.where('iniciadaEm').between(de, ate, true, true)
+        .filter(s => s.stravaId == null && (s.treino === null || recebida.treino === null || s.treino === recebida.treino) && possivelMesmoTreino(s, recebida) &&
+          tipoParaMeta(s) === tipoParaMeta(recebida))
+        .toArray()
+      // Apenas uma candidata compatível pode ser vinculada automaticamente.
+      if (candidatas.length === 1) {
+        await db.sessoes.update(candidatas[0].id!, { stravaId: a.id })
+        continue
+      }
+      await db.sessoes.add({
+        ...recebida,
         volumeKg: 0, seriesFeitas: 0, seriesTotal: 0,
-        fonte: 'strava', stravaId: a.id,
       })
       nSessoes++
-    } else if (a.type === 'Run') {
+    } else if (a.type === 'Run' || a.sport_type === 'Run') {
       const existe = await db.corridas.where('stravaId').equals(a.id).first()
       if (existe) continue
       const mesmoDia = await db.corridas
@@ -171,7 +181,7 @@ export async function importarStrava(): Promise<{ sessoes: number; corridas: num
       const km = Math.round((a.distance / 1000) * 100) / 100
       const min = Math.round((a.moving_time / 60) * 10) / 10
       await db.corridas.add({
-        data: a.start_date.slice(0, 10),
+        data: dia,
         tipo: a.name,
         distanciaKm: km, duracaoMin: min,
         paceMinKm: km > 0.2 ? Math.round((min / km) * 100) / 100 : null,
@@ -187,7 +197,7 @@ export async function importarStrava(): Promise<{ sessoes: number; corridas: num
 
 // envia sessões finalizadas no app que estão na fila
 // Falha NUNCA é só aviso que some: permanece na fila com o erro gravado.
-export async function exportarPendencias(): Promise<{ enviadas: number; erros: number }> {
+async function exportarPendenciasInterno(): Promise<{ enviadas: number; erros: number }> {
   const pendentes = await db.syncQueue.where('tipo').equals('strava_sessao').toArray()
   if (pendentes.length === 0) return { enviadas: 0, erros: 0 }
   const token = await tokenValido()
@@ -197,6 +207,8 @@ export async function exportarPendencias(): Promise<{ enviadas: number; erros: n
     const { sessaoId, treino } = JSON.parse(p.payload) as { sessaoId: number; treino: LetraTreino }
     const s = await db.sessoes.get(sessaoId)
     if (!s || !s.finalizadaEm) { await db.syncQueue.delete(p.id!); continue }
+    // Importação pode já ter vinculado o registro rápido à atividade existente.
+    if (s.stravaId != null) { await db.syncQueue.delete(p.id!); continue }
     const dur = Math.max(60, Math.round((new Date(s.finalizadaEm).getTime() - new Date(s.iniciadaEm).getTime()) / 1000))
     const body = new URLSearchParams({
       // padrão único de nome no Strava; mudou aqui, mudou em todo lugar
@@ -232,4 +244,25 @@ export async function exportarPendencias(): Promise<{ enviadas: number; erros: n
     }
   }
   return { enviadas, erros }
+}
+
+// Uma sincronização por vez, inclusive entre abas, para impedir importações e
+// renovações de token concorrentes. Sem Web Locks, serializa nesta aba.
+let filaSync: Promise<unknown> = Promise.resolve()
+function sincronizar<T>(executar: () => Promise<T>): Promise<T> {
+  const rodada = filaSync.catch(() => {}).then(() =>
+    typeof navigator !== 'undefined' && navigator.locks
+      ? navigator.locks.request('treino-hub-strava', executar)
+      : executar(),
+  )
+  filaSync = rodada
+  return rodada
+}
+let importacaoAtiva: Promise<{ sessoes: number; corridas: number }> | null = null
+export function importarStrava(): Promise<{ sessoes: number; corridas: number }> {
+  if (!importacaoAtiva) importacaoAtiva = sincronizar(importarStravaInterno).finally(() => { importacaoAtiva = null })
+  return importacaoAtiva
+}
+export function exportarPendencias(): Promise<{ enviadas: number; erros: number }> {
+  return sincronizar(exportarPendenciasInterno)
 }

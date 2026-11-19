@@ -84,7 +84,7 @@ async function carregar(dias: Janela): Promise<Dados> {
   }
 }
 
-export default function Evolucao() {
+export default function Evolucao({ onComposicao }: { onComposicao: () => void }) {
   const [janela, setJanela] = useState<Janela>(90)
   const [d, setD] = useState<Dados | null>(null)
 
@@ -122,6 +122,7 @@ export default function Evolucao() {
         ))}
       </div>
 
+      <button className="btn-main" onClick={onComposicao}>Composição corporal ›</button>
       <div className="card">
         <div className="eyebrow">Musculação por semana</div>
         <p className="g-nota">
