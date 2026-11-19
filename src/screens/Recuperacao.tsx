@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import { db, type DiaSaude } from '../db/schema'
+import { indiceRecuperacao } from '../logic/indiceRecuperacao'
 import { credenciaisIntervals, sincronizarIntervals } from '../sync/intervals'
 
 // Lê a tabela `diario`, que junta Apple Health (passos, calorias, FC; já traz
@@ -43,6 +44,7 @@ export default function Recuperacao() {
   const sono = ultimo('sonoHoras')
   const passos = ultimo('passos')
   const peso = ultimo('pesoKg')
+  const indice = indiceRecuperacao(dias, new Date())
 
   // limiares pessoais, não genéricos
   const corFcr = (v: number | null) =>
@@ -61,6 +63,23 @@ export default function Recuperacao() {
           <span className="tipo">COMO VOCÊ ESTÁ</span>
         </h1>
       </div>
+
+      <section className="card indice-recuperacao" aria-labelledby="titulo-indice">
+        <h2 id="titulo-indice">Índice estimado</h2>
+        {indice ? <>
+          <div className="indice-valor">{indice.valor}<span>%</span></div>
+          <p>Comparação de hoje com seu padrão recente de sono e frequência de repouso. É uma referência experimental, não uma porcentagem real de recuperação.</p>
+          <details><summary>Como é calculado</summary>
+            <p>Seu padrão é a mediana dos últimos 14 dias: {n(indice.sonoBase, 1)}h de sono e {n(indice.fcBase, 1)} bpm de frequência de repouso. Hoje: {n(indice.sono, 1)}h e {n(indice.fc)} bpm.</p>
+            <p>Uma noite e uma frequência iguais ao seu padrão recebem 70 pontos cada. Cada hora de sono acima ou abaixo do padrão altera 15 pontos; cada bpm abaixo ou acima altera 5 pontos. Cada parte vai de 0 a 100 e o índice é a média das duas.</p>
+            <p>Esta escala é uma estimativa experimental, não validada. Ela não mede uma porcentagem real de recuperação nem substitui como você se sente.</p>
+          </details>
+        </> : <>
+          <p>Sem dados suficientes para calcular hoje.</p>
+          <p>São necessários sono e frequência de repouso de hoje e pelo menos 7 dias de cada medida nos 14 dias anteriores. Sincronize com o Intervals.icu.</p>
+          <p>O índice é uma referência experimental, não uma medida clínica.</p>
+        </>}
+      </section>
 
       <div className="stat-grid">
         <div className="stat-big">

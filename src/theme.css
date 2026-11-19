@@ -514,3 +514,10 @@ input { font: inherit; color: inherit; }
 .composicao .btn-main { letter-spacing: .04em; }
 @media (prefers-reduced-motion: reduce) { .composicao button { transition: none; } }
 .composicao > * { animation: none; }
+
+.indice-recuperacao { margin: 20px 0; padding: 18px; }
+.indice-recuperacao h2 { font-size: 1rem; }
+.indice-recuperacao p { color: #b5b0a7; font-size: .85rem; line-height: 1.5; margin-top: 10px; }
+.indice-recuperacao summary { cursor: pointer; font-size: .85rem; margin-top: 14px; color: var(--text); }
+.indice-valor { font-size: 2.75rem; font-weight: 800; margin-top: 10px; }
+.indice-valor span { font-size: 1.25rem; margin-left: 3px; }
