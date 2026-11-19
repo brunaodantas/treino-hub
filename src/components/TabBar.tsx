@@ -23,11 +23,11 @@ const NOMES: Record<AbaBarra, string> = {
 
 export default function TabBar({ aba, onChange }: { aba: Aba; onChange: (a: Aba) => void }) {
   return (
-    <nav className="tabbar">
+    <nav className="tabbar" aria-label="Navegação principal">
       {(Object.keys(NOMES) as AbaBarra[]).map((a) => (
         <button key={a} className={(a === aba || (a === 'evolucao' && aba === 'composicao')) ? 'ativa' : ''} onClick={() => onChange(a)}>
           <svg viewBox="0 0 24 24" fill="currentColor"><path d={ICONES[a]} /></svg>
-          {NOMES[a]}
+          <span>{NOMES[a]}</span>
         </button>
       ))}
     </nav>
