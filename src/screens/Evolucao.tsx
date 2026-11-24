@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import type { RegistroCorporalDiario } from '../db/schema'
 import { db } from '../db/schema'
 import { GraficoLinha, GraficoBarras, Legenda, type Ponto } from '../components/Grafico'
 
@@ -84,11 +85,25 @@ async function carregar(dias: Janela): Promise<Dados> {
   }
 }
 
+const hojeLocal = () => new Date().toLocaleDateString('sv-SE')
+const vazioDiario = (data: string): RegistroCorporalDiario => ({ data, proteinaG: null, caloriasKcal: null, aguaMl: null, apetite: null, mounjaroAplicado: false, mounjaroHorario: null, efeitos: '' })
+
 export default function Evolucao({ onComposicao }: { onComposicao: () => void }) {
   const [janela, setJanela] = useState<Janela>(90)
   const [d, setD] = useState<Dados | null>(null)
+  const [diarioCorporal, setDiarioCorporal] = useState<RegistroCorporalDiario>(vazioDiario(hojeLocal()))
+  const [salvo, setSalvo] = useState('')
 
   useEffect(() => { carregar(janela).then(setD) }, [janela])
+  useEffect(() => {
+    const data = hojeLocal()
+    db.corporalDiario.get(data).then(r => setDiarioCorporal(r ?? vazioDiario(data)))
+  }, [])
+  async function salvarDiario() {
+    await db.corporalDiario.put(diarioCorporal)
+    setSalvo('Registro de hoje salvo neste dispositivo.')
+    setTimeout(() => setSalvo(''), 3000)
+  }
 
   if (!d) return <div className="wrap screen"><div className="vazio">Carregando…</div></div>
 
@@ -104,9 +119,9 @@ export default function Evolucao({ onComposicao }: { onComposicao: () => void })
   return (
     <div className="wrap screen">
       <div>
-        <div className="eyebrow">Evolução</div>
+        <div className="eyebrow">Evolução corporal</div>
         <h1 className="hero-dia" style={{ marginTop: 8, fontSize: 'clamp(2.2rem, 11vw, 3.2rem)' }}>
-          <span className="tipo">COMO VOCÊ VEM</span>
+          <span className="tipo">SEU CORPO</span>
         </h1>
         <div className="hero-sub">TENDÊNCIA, NÃO O DIA DE HOJE</div>
       </div>
@@ -123,6 +138,25 @@ export default function Evolucao({ onComposicao }: { onComposicao: () => void })
       </div>
 
       <button className="btn-main" onClick={onComposicao}>Composição corporal ›</button>
+      <div className="card evolucao-diaria">
+        <div className="eyebrow">Hoje · nutrição e apetite</div>
+        <div className="evo-campos">
+          <label>Proteína (g)<input inputMode="decimal" type="number" min="0" value={diarioCorporal.proteinaG ?? ''} onChange={e => setDiarioCorporal({ ...diarioCorporal, proteinaG: e.target.value === '' ? null : Number(e.target.value) })} /></label>
+          <label>Calorias (kcal)<input inputMode="numeric" type="number" min="0" value={diarioCorporal.caloriasKcal ?? ''} onChange={e => setDiarioCorporal({ ...diarioCorporal, caloriasKcal: e.target.value === '' ? null : Number(e.target.value) })} /></label>
+          <label>Água (ml)<input inputMode="numeric" type="number" min="0" value={diarioCorporal.aguaMl ?? ''} onChange={e => setDiarioCorporal({ ...diarioCorporal, aguaMl: e.target.value === '' ? null : Number(e.target.value) })} /></label>
+        </div>
+        <div className="eyebrow" style={{ marginTop: 16 }}>Apetite · 1 sem fome → 5 muita fome</div>
+        <div className="evo-escala">{([1,2,3,4,5] as const).map(v => <button key={v} className={diarioCorporal.apetite === v ? 'ativo' : ''} onClick={() => setDiarioCorporal({ ...diarioCorporal, apetite: v })}>{v}</button>)}</div>
+      </div>
+      <div className="card evolucao-diaria">
+        <div className="eyebrow">Mounjaro · acompanhamento</div>
+        <label className="evo-check"><input type="checkbox" checked={diarioCorporal.mounjaroAplicado} onChange={e => setDiarioCorporal({ ...diarioCorporal, mounjaroAplicado: e.target.checked })} />Aplicação feita hoje</label>
+        {diarioCorporal.mounjaroAplicado && <label>Horário<input type="time" value={diarioCorporal.mounjaroHorario ?? ''} onChange={e => setDiarioCorporal({ ...diarioCorporal, mounjaroHorario: e.target.value || null })} /></label>}
+        <label>Efeitos percebidos, se houver<textarea rows={2} placeholder="Ex.: náusea, refluxo, constipação" value={diarioCorporal.efeitos} onChange={e => setDiarioCorporal({ ...diarioCorporal, efeitos: e.target.value })} /></label>
+        <button className="btn-main" onClick={salvarDiario}>Salvar registro de hoje</button>
+        {salvo && <p className="g-nota" role="status">{salvo}</p>}
+        <p className="g-nota">Este registro serve para acompanhar padrões. Não altera dose nem faz recomendação de medicação.</p>
+      </div>
       <div className="card">
         <div className="eyebrow">Musculação por semana</div>
         <p className="g-nota">

@@ -87,6 +87,17 @@ export interface SyncItem {
   ultimoErro: string | null
 }
 
+export interface RegistroCorporalDiario {
+  data: string
+  proteinaG: number | null
+  caloriasKcal: number | null
+  aguaMl: number | null
+  apetite: 1 | 2 | 3 | 4 | 5 | null
+  mounjaroAplicado: boolean
+  mounjaroHorario: string | null
+  efeitos: string
+}
+
 export interface Config {
   chave: string
   valor: string
@@ -103,6 +114,7 @@ class TreinoDB extends Dexie {
   pesos!: Table<PesoExercicio, string>
   syncQueue!: Table<SyncItem, number>
   config!: Table<Config, string>
+  corporalDiario!: Table<RegistroCorporalDiario, string>
 
   constructor() {
     super('treino-hub-v2')
@@ -123,6 +135,7 @@ class TreinoDB extends Dexie {
       diario: 'data',
     })
     this.version(4).stores({ composicao: 'id, data, fonte' })
+    this.version(5).stores({ corporalDiario: 'data' })
   }
 }
 

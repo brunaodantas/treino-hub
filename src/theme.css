@@ -521,3 +521,15 @@ input { font: inherit; color: inherit; }
 .indice-recuperacao summary { cursor: pointer; font-size: .85rem; margin-top: 14px; color: var(--text); }
 .indice-valor { font-size: 2.75rem; font-weight: 800; margin-top: 10px; }
 .indice-valor span { font-size: 1.25rem; margin-left: 3px; }
+
+/* Evolução corporal: registro diário compacto para celular. */
+.evolucao-diaria label { display:flex; flex-direction:column; gap:7px; margin-top:12px; color:var(--muted); font-size:.78rem; font-weight:700; }
+.evolucao-diaria input:not([type=checkbox]), .evolucao-diaria textarea { width:100%; min-height:44px; padding:10px; background:var(--panel-2); color:var(--text); border:1px solid var(--line); border-radius:var(--r1); font:inherit; }
+.evolucao-diaria textarea { resize:vertical; }
+.evo-campos { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:8px; }
+.evo-escala { display:grid; grid-template-columns:repeat(5,1fr); gap:8px; margin-top:10px; }
+.evo-escala button { min-height:44px; border:1px solid var(--line); border-radius:10px; color:var(--muted); font-weight:900; }
+.evo-escala button.ativo { background:var(--c-run); border-color:var(--c-run); color:var(--bg); }
+.evolucao-diaria .evo-check { flex-direction:row; align-items:center; gap:10px; color:var(--text); }
+.evo-check input { width:22px; height:22px; accent-color:var(--c-run); }
+@media (max-width:359px) { .evo-campos { grid-template-columns:1fr; } }

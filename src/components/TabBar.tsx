@@ -18,7 +18,7 @@ const NOMES: Record<AbaBarra, string> = {
   historico: 'Histórico',
   recuperacao: 'Recuperação',
   protocolos: 'Protocolos',
-  evolucao: 'Evolução',
+  evolucao: 'Corpo',
 }
 
 export default function TabBar({ aba, onChange }: { aba: Aba; onChange: (a: Aba) => void }) {
