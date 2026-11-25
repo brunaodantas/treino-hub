@@ -144,6 +144,23 @@ export default function Composicao({ onVoltar }: { onVoltar: () => void }) {
       <button className="btn-main" disabled={ocupado || !selecionados.size} onClick={importar}>Salvar {selecionados.size} registros selecionados</button>
       <button className="btn-ghost" disabled={ocupado} onClick={() => { setPrevia([]); setSelecionados(new Set()) }}>Cancelar importação</button>
     </section>}
+    <section className="comp-grafico"><h2>Evolução corporal</h2>
+      {([
+        ['pesoKg', 'Peso'],
+        ['gorduraPct', 'Gordura corporal'],
+        ['massaMuscularKg', 'Massa muscular'],
+        ['gorduraVisceral', 'Gordura visceral'],
+      ] as [CampoCorporal, string][]).map(([k, titulo]) => {
+        const ps = filtradas.filter(m => m.valores[k] !== undefined).sort((a,b) => `${a.data}${a.horario ?? ''}`.localeCompare(`${b.data}${b.horario ?? ''}`))
+        const u = ps.at(-1)
+        return <div className="comp-grafico-principal" key={k}>
+          <div className="eyebrow">{titulo}</div>
+          {u ? <><p className="comp-valor">{formatar(u.valores[k]!)} <small>{CAMPOS[k][1]}</small></p>
+            {ps.length > 1 ? <GraficoLinha series={[{ nome: titulo, cor: 'var(--c-run)', pontos: ps.map(m => ({ x: m.data, y: m.valores[k]! })) }]} conectar formato={formatar} /> : <p className="comp-nota">O gráfico aparecerá após a próxima medição.</p>}
+          </> : <p className="comp-nota">Sem dados ainda.</p>}
+        </div>
+      })}
+    </section>
     <section className="comp-grafico"><h2>Histórico e gráficos</h2>
       <label>Medida<select aria-label="Medida" value={campo} onChange={e => setCampo(e.target.value as CampoCorporal)}>{campos.map(k => <option key={k} value={k}>{CAMPOS[k][0]} ({CAMPOS[k][1]})</option>)}</select></label>
       <label className="comp-check"><input type="checkbox" checked={soJejum} onChange={e => setSoJejum(e.target.checked)} />Somente medições em jejum</label>
