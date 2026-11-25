@@ -3,7 +3,7 @@ import type { RegistroCorporalDiario } from '../db/schema'
 import { db } from '../db/schema'
 import { GraficoLinha, GraficoBarras, Legenda, type Ponto } from '../components/Grafico'
 
-type Janela = 90 | 180 | 365
+type Janela = 90 | 180 | 365 | 'tudo'
 
 interface Dados {
   semanas: Array<{ rotulo: string; musc: number; km: number }>
@@ -28,8 +28,8 @@ function segunda(d: Date): string {
 }
 
 async function carregar(dias: Janela): Promise<Dados> {
-  const corte = new Date()
-  corte.setDate(corte.getDate() - dias)
+  const corte = dias === 'tudo' ? new Date(2015, 0, 1) : new Date()
+  if (dias !== 'tudo') corte.setDate(corte.getDate() - dias)
   const corteISO = dataLocal(corte)
 
   const [sessoes, corridas, diario] = await Promise.all([
@@ -107,7 +107,7 @@ export default function Evolucao({ onComposicao }: { onComposicao: () => void })
 
   if (!d) return <div className="wrap screen"><div className="vazio">Carregando…</div></div>
 
-  const semanasVis = d.semanas.slice(-Math.min(16, d.semanas.length))
+  const semanasVis = janela === 'tudo' ? d.semanas : d.semanas.slice(-Math.min(16, d.semanas.length))
   const mediaMusc = semanasVis.length
     ? Math.round((semanasVis.reduce((s, x) => s + x.musc, 0) / semanasVis.length) * 10) / 10
     : 0
@@ -127,12 +127,12 @@ export default function Evolucao({ onComposicao }: { onComposicao: () => void })
       </div>
 
       <div className="week-strip" style={{ marginTop: 16 }}>
-        {([90, 180, 365] as Janela[]).map((j) => (
+        {([90, 180, 365, 'tudo'] as Janela[]).map((j) => (
           <button key={j}
             className={`week-day${janela === j ? ' hoje' : ''}`}
             style={{ ['--dia-cor' as string]: 'var(--c-a)' }}
             onClick={() => setJanela(j)}>
-            {j === 365 ? '1 ANO' : `${j} DIAS`}
+            {j === 'tudo' ? 'TUDO' : j === 365 ? '1 ANO' : `${j} DIAS`}
           </button>
         ))}
       </div>
@@ -160,7 +160,7 @@ export default function Evolucao({ onComposicao }: { onComposicao: () => void })
       <div className="card">
         <div className="eyebrow">Musculação por semana</div>
         <p className="g-nota">
-          Média de <b>{n(mediaMusc, 1)}</b> por semana nas últimas {semanasVis.length}. A linha tracejada é a meta de 3.
+          Média de <b>{n(mediaMusc, 1)}</b> por semana {janela === 'tudo' ? `em todo o histórico (${semanasVis.length} semanas)` : `nas últimas ${semanasVis.length}`}. A linha tracejada é a meta de 3.
         </p>
         <GraficoBarras
           pontos={semanasVis.map((s) => ({ x: s.rotulo, y: s.musc }))}
