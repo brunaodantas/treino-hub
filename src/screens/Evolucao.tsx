@@ -89,7 +89,7 @@ const hojeLocal = () => new Date().toLocaleDateString('sv-SE')
 const vazioDiario = (data: string): RegistroCorporalDiario => ({ data, proteinaG: null, caloriasKcal: null, aguaMl: null, apetite: null, mounjaroAplicado: false, mounjaroHorario: null, efeitos: '' })
 
 export default function Evolucao({ onComposicao }: { onComposicao: () => void }) {
-  const [janela, setJanela] = useState<Janela>(90)
+  const [janela, setJanela] = useState<Janela>('tudo')
   const [d, setD] = useState<Dados | null>(null)
   const [diarioCorporal, setDiarioCorporal] = useState<RegistroCorporalDiario>(vazioDiario(hojeLocal()))
   const [salvo, setSalvo] = useState('')
