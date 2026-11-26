@@ -99,12 +99,6 @@ export default function Evolucao({ onComposicao }: { onComposicao: () => void })
     const data = hojeLocal()
     db.corporalDiario.get(data).then(r => setDiarioCorporal(r ?? vazioDiario(data)))
   }, [])
-  async function salvarDiario() {
-    await db.corporalDiario.put(diarioCorporal)
-    setSalvo('Registro de hoje salvo neste dispositivo.')
-    setTimeout(() => setSalvo(''), 3000)
-  }
-
   if (!d) return <div className="wrap screen"><div className="vazio">Carregando…</div></div>
 
   const semanasVis = janela === 'tudo' ? d.semanas : d.semanas.slice(-Math.min(16, d.semanas.length))
@@ -139,23 +133,15 @@ export default function Evolucao({ onComposicao }: { onComposicao: () => void })
 
       <button className="btn-main" onClick={onComposicao}>Composição corporal ›</button>
       <div className="card evolucao-diaria">
-        <div className="eyebrow">Hoje · nutrição e apetite</div>
-        <div className="evo-campos">
-          <label>Proteína (g)<input inputMode="decimal" type="number" min="0" value={diarioCorporal.proteinaG ?? ''} onChange={e => setDiarioCorporal({ ...diarioCorporal, proteinaG: e.target.value === '' ? null : Number(e.target.value) })} /></label>
-          <label>Calorias (kcal)<input inputMode="numeric" type="number" min="0" value={diarioCorporal.caloriasKcal ?? ''} onChange={e => setDiarioCorporal({ ...diarioCorporal, caloriasKcal: e.target.value === '' ? null : Number(e.target.value) })} /></label>
-          <label>Água (ml)<input inputMode="numeric" type="number" min="0" value={diarioCorporal.aguaMl ?? ''} onChange={e => setDiarioCorporal({ ...diarioCorporal, aguaMl: e.target.value === '' ? null : Number(e.target.value) })} /></label>
-        </div>
-        <div className="eyebrow" style={{ marginTop: 16 }}>Apetite · 1 sem fome → 5 muita fome</div>
-        <div className="evo-escala">{([1,2,3,4,5] as const).map(v => <button key={v} className={diarioCorporal.apetite === v ? 'ativo' : ''} onClick={() => setDiarioCorporal({ ...diarioCorporal, apetite: v })}>{v}</button>)}</div>
-      </div>
-      <div className="card evolucao-diaria">
-        <div className="eyebrow">Mounjaro · acompanhamento</div>
-        <label className="evo-check"><input type="checkbox" checked={diarioCorporal.mounjaroAplicado} onChange={e => setDiarioCorporal({ ...diarioCorporal, mounjaroAplicado: e.target.checked })} />Aplicação feita hoje</label>
-        {diarioCorporal.mounjaroAplicado && <label>Horário<input type="time" value={diarioCorporal.mounjaroHorario ?? ''} onChange={e => setDiarioCorporal({ ...diarioCorporal, mounjaroHorario: e.target.value || null })} /></label>}
-        <label>Efeitos percebidos, se houver<textarea rows={2} placeholder="Ex.: náusea, refluxo, constipação" value={diarioCorporal.efeitos} onChange={e => setDiarioCorporal({ ...diarioCorporal, efeitos: e.target.value })} /></label>
-        <button className="btn-main" onClick={salvarDiario}>Salvar registro de hoje</button>
+        <div className="eyebrow">Fome hoje · 1 sem fome → 5 muita fome</div>
+        <div className="evo-escala">{([1,2,3,4,5] as const).map(v => <button key={v} className={diarioCorporal.apetite === v ? 'ativo' : ''} onClick={async () => {
+          const atualizado = { ...diarioCorporal, apetite: v }
+          setDiarioCorporal(atualizado)
+          await db.corporalDiario.put(atualizado)
+          setSalvo('Salvo')
+          setTimeout(() => setSalvo(''), 1500)
+        }}>{v}</button>)}</div>
         {salvo && <p className="g-nota" role="status">{salvo}</p>}
-        <p className="g-nota">Este registro serve para acompanhar padrões. Não altera dose nem faz recomendação de medicação.</p>
       </div>
       <div className="card">
         <div className="eyebrow">Musculação por semana</div>
