@@ -98,6 +98,12 @@ export interface RegistroCorporalDiario {
   efeitos: string
 }
 
+export interface RegistroFome {
+  id?: number
+  nivel: 1 | 2 | 3 | 4 | 5
+  registradoEm: string
+}
+
 export interface Config {
   chave: string
   valor: string
@@ -115,6 +121,7 @@ class TreinoDB extends Dexie {
   syncQueue!: Table<SyncItem, number>
   config!: Table<Config, string>
   corporalDiario!: Table<RegistroCorporalDiario, string>
+  fome!: Table<RegistroFome, number>
 
   constructor() {
     super('treino-hub-v2')
@@ -136,6 +143,7 @@ class TreinoDB extends Dexie {
     })
     this.version(4).stores({ composicao: 'id, data, fonte' })
     this.version(5).stores({ corporalDiario: 'data' })
+    this.version(6).stores({ fome: '++id, registradoEm, nivel' })
   }
 }
 

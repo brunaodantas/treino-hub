@@ -1,5 +1,4 @@
 import { useEffect, useState } from 'react'
-import type { RegistroCorporalDiario } from '../db/schema'
 import { db } from '../db/schema'
 import { GraficoLinha, GraficoBarras, Legenda, type Ponto } from '../components/Grafico'
 
@@ -85,20 +84,15 @@ async function carregar(dias: Janela): Promise<Dados> {
   }
 }
 
-const hojeLocal = () => new Date().toLocaleDateString('sv-SE')
-const vazioDiario = (data: string): RegistroCorporalDiario => ({ data, proteinaG: null, caloriasKcal: null, aguaMl: null, apetite: null, mounjaroAplicado: false, mounjaroHorario: null, efeitos: '' })
-
 export default function Evolucao({ onComposicao }: { onComposicao: () => void }) {
   const [janela, setJanela] = useState<Janela>(365)
   const [d, setD] = useState<Dados | null>(null)
-  const [diarioCorporal, setDiarioCorporal] = useState<RegistroCorporalDiario>(vazioDiario(hojeLocal()))
+  const [fome, setFome] = useState<Array<{ id?: number; nivel: 1|2|3|4|5; registradoEm: string }>>([])
   const [salvo, setSalvo] = useState('')
 
   useEffect(() => { carregar(janela).then(setD) }, [janela])
-  useEffect(() => {
-    const data = hojeLocal()
-    db.corporalDiario.get(data).then(r => setDiarioCorporal(r ?? vazioDiario(data)))
-  }, [])
+  const carregarFome = () => db.fome.orderBy('registradoEm').reverse().limit(20).toArray().then(setFome)
+  useEffect(() => { carregarFome() }, [])
   if (!d) return <div className="wrap screen"><div className="vazio">Carregando…</div></div>
 
   const semanasVis = janela === 'tudo' ? d.semanas : d.semanas.slice(-Math.min(16, d.semanas.length))
@@ -133,15 +127,18 @@ export default function Evolucao({ onComposicao }: { onComposicao: () => void })
 
       <button className="btn-main" onClick={onComposicao}>Composição corporal ›</button>
       <div className="card evolucao-diaria">
-        <div className="eyebrow">Fome hoje · 1 sem fome → 5 muita fome</div>
-        <div className="evo-escala">{([1,2,3,4,5] as const).map(v => <button key={v} className={diarioCorporal.apetite === v ? 'ativo' : ''} onClick={async () => {
-          const atualizado = { ...diarioCorporal, apetite: v }
-          setDiarioCorporal(atualizado)
-          await db.corporalDiario.put(atualizado)
-          setSalvo('Salvo')
+        <div className="eyebrow">Como está sua fome agora?</div>
+        <div className="evo-escala">{([1,2,3,4,5] as const).map(v => <button key={v} onClick={async () => {
+          await db.fome.add({ nivel: v, registradoEm: new Date().toISOString() })
+          await carregarFome()
+          setSalvo('Registrado agora')
           setTimeout(() => setSalvo(''), 1500)
         }}>{v}</button>)}</div>
+        <p className="g-nota">1 sem fome · 3 fome normal · 5 muita fome</p>
         {salvo && <p className="g-nota" role="status">{salvo}</p>}
+        {fome.length > 0 && <details><summary>Histórico de fome ({fome.length} mais recentes)</summary>
+          {fome.map(r => <div className="comp-registro" key={r.id}><span><b>Nível {r.nivel}</b> · {new Date(r.registradoEm).toLocaleString('pt-BR', { day:'2-digit', month:'2-digit', year:'numeric', hour:'2-digit', minute:'2-digit' })}</span></div>)}
+        </details>}
       </div>
       <div className="card">
         <div className="eyebrow">Musculação por semana</div>
